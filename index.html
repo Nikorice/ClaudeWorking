@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Powder 3D Printer Cost Calculator</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <!-- Three.js Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+  
+  <!-- Main Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Powder 3D Printer Cost Calculator</h1>
+      <p class="subheading">Calculate material costs and optimize printer capacity</p>
+      
+      <!-- Theme toggle button will be added here by JS -->
+    </header>
+    
+    <!-- Global Settings Card -->
+    <div class="card settings-card">
+      <div class="settings-section">
+        <h3>
+          <span class="material-icon">monetization_on</span>
+          Currency Settings
+        </h3>
+        <div class="form-group">
+          <label for="projectName">Project Name</label>
+          <input type="text" id="projectName" placeholder="My 3D Print Project">
+        </div>
+        <div class="form-group currency-selector">
+          <label for="currency">Select Currency</label>
+          <select id="currency" class="form-control">
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="JPY">JPY (¥)</option>
+            <option value="SGD">SGD (S$)</option>
+          </select>
+        </div>
+        
+        <!-- Advanced toggle for pricing -->
+        <div class="advanced-toggle">
+          <span>Advanced Pricing Settings</span>
+          <span class="material-icon advanced-toggle-icon">expand_more</span>
+        </div>
+        
+        <div class="advanced-settings">
+          <div class="form-group">
+            <label for="pricePowder">Powder Price per kg</label>
+            <div class="input-group">
+              <input type="number" id="pricePowder" step="0.001" min="0">
+              <span class="input-group-append" id="powder-currency">USD</span>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="priceBinder">Binder Price per mL</label>
+            <div class="input-group">
+              <input type="number" id="priceBinder" step="0.001" min="0">
+              <span class="input-group-append" id="binder-currency">USD</span>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="priceSilica">Silica Price per g</label>
+            <div class="input-group">
+              <input type="number" id="priceSilica" step="0.001" min="0">
+              <span class="input-group-append" id="silica-currency">USD</span>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="priceGlaze">Glaze Price per g</label>
+            <div class="input-group">
+              <input type="number" id="priceGlaze" step="0.001" min="0">
+              <span class="input-group-append" id="glaze-currency">USD</span>
+            </div>
+          </div>
+          
+          <button id="updatePricing" class="btn btn-primary btn-sm">Update Pricing</button>
+          <button id="saveSettings" class="btn btn-outline btn-sm">
+            <span class="material-icon">save</span> Save Settings
+          </button>
+        </div>
+      </div>
+      
+      <div class="settings-section">
+        <h3>
+          <span class="material-icon">settings</span>
+          Printer Settings
+        </h3>
+        <div class="form-group">
+          <label for="wallMargin">Wall Margin (mm)</label>
+          <input type="number" id="wallMargin" value="10" min="0" max="50">
+        </div>
+        <div class="form-group">
+          <label for="objectSpacing">Object Spacing (mm)</label>
+          <input type="number" id="objectSpacing" value="15" min="0" max="50">
+        </div>
+        <button id="updateSettings" class="btn btn-primary btn-sm">Apply Settings</button>
+      </div>
+    </div>
+    
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="upload">STL Upload</button>
+      <button class="tab-btn" data-tab="manual">Manual Input</button>
+    </div>
+    
+    <!-- STL Upload Tab -->
+    <div id="upload-tab" class="tab-content active">
+      <div class="memory-warning">
+        <strong>Note:</strong> Large STL files may affect performance. For best results, use optimized STL files under 50MB.
+      </div>
+      <div id="stlRows" class="stl-rows">
+        <!-- STL rows will be added here dynamically -->
+      </div>
+      <button id="addNewStl" class="btn btn-primary">
+        <span class="material-icon">add</span> New STL
+      </button>
+    </div>
+    
+    <!-- Manual Input Tab -->
+    <div id="manual-tab" class="tab-content">
+      <div class="card">
+        <h3>
+          <span class="material-icon">edit</span>
+          STL Details
+        </h3>
+        <div class="form-group">
+          <label for="volume">Volume (cm³)</label>
+          <input type="number" id="volume" min="0" step="0.01" value="100">
+        </div>
+        <div class="form-group">
+          <label for="width">Width (mm)</label>
+          <input type="number" id="width" min="0" step="0.1" value="50" data-unit="mm">
+        </div>
+        <div class="form-group">
+          <label for="depth">Depth (mm)</label>
+          <input type="number" id="depth" min="0" step="0.1" value="50" data-unit="mm">
+        </div>
+        <div class="form-group">
+          <label for="height">Height (mm)</label>
+          <input type="number" id="height" min="0" step="0.1" value="50" data-unit="mm">
+        </div>
+        <button id="calculateBtn" class="btn btn-primary">Calculate Costs</button>
+      </div>
+      
+      <div id="manual-results" class="results-panel">
+        <h3>
+          <span class="material-icon">analytics</span>
+          Cost Analysis
+        </h3>
+        <div class="error-message"></div>
+        <div class="validation-feedback"></div>
+        <div class="total-cost" id="manual-total-cost">$0.00</div>
+        
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-value" id="volume-display">100.00</div>
+            <div class="stat-label">Volume (cm³)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="dimensions-display">50.0 × 50.0 × 50.0</div>
+            <div class="stat-label">Dimensions (mm)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="print-time-display">--</div>
+            <div class="stat-label">Print Time (400/600)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="material-weight-display">--</div>
+            <div class="stat-label">Material Weight</div>
+          </div>
+        </div>
+        
+        <div class="toggle-container">
+          <label class="toggle-switch">
+            <input type="checkbox" id="manual-glazeToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">Apply Glaze</span>
+        </div>
+        
+        <div class="progress-container" id="manual-costBreakdown"></div>
+        
+        <h3>
+          <span class="material-icon">view_in_ar</span>
+          Printer Capacity
+        </h3>
+        <div class="printer-cards">
+          <div class="printer-card">
+            <div class="printer-title">Printer 400</div>
+            <div class="printer-stats" id="manual-printer400-stats">
+              <p>Calculating...</p>
+            </div>
+          </div>
+          <div class="printer-card">
+            <div class="printer-title">Printer 600</div>
+            <div class="printer-stats" id="manual-printer600-stats">
+              <p>Calculating...</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="packing-visualizers">
+          <div class="packing-visualizer" id="manual-packing-400"></div>
+          <div class="packing-visualizer" id="manual-packing-600"></div>
+        </div>
+        
+        <div class="row-actions">
+          <button class="btn btn-primary" id="recalculateManual">
+            <span class="material-icon">refresh</span> Recalculate
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Notification container -->
+    <div id="notification-container" class="notification-container"></div>
+  </div>
+
+  <!-- STL Row Template -->
+  <template id="stl-row-template">
+    <div class="stl-row card">
+      <div class="stl-col">
+        <div class="upload-area">
+          <div class="upload-icon">
+            <span class="material-icon">cloud_upload</span>
+          </div>
+          <p><strong>Click or drag to upload STL</strong></p>
+          <p>Supports binary STL files</p>
+          <p class="upload-limits">Maximum file size: 100MB</p>
+        </div>
+        <input type="file" accept=".stl" style="display: none;">
+        
+        <div class="model-viewer">
+          <div class="model-viewer-loading">
+            <div class="spinner"></div>
+            <div>Loading model...</div>
+            <div class="model-viewer-loading-progress">
+              <div class="model-viewer-loading-bar" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="viewer-controls">
+            <button class="viewer-control-btn reset-camera-btn" title="Reset Camera">
+              <span class="material-icon">center_focus_strong</span>
+            </button>
+            <button class="viewer-control-btn toggle-wireframe-btn" title="Toggle Wireframe">
+              <span class="material-icon">grid_3x3</span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="orientation-toggle">
+          <button type="button" class="orientation-btn active" data-orientation="flat">
+            <span class="material-icon">crop_landscape</span> Flat
+          </button>
+          <button type="button" class="orientation-btn" data-orientation="vertical">
+            <span class="material-icon">crop_portrait</span> Vertical
+          </button>
+        </div>
+      </div>
+      
+      <div class="stl-col">
+        <div class="results-panel">
+          <h3>
+            <span class="material-icon">analytics</span>
+            Cost Analysis
+          </h3>
+          <div class="error-message"></div>
+          <div class="loading-message">
+            <div class="spinner"></div>
+            Processing STL file...
+          </div>
+          <div class="total-cost">--</div>
+          
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-value">--</div>
+              <div class="stat-label">Volume (cm³)</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">--</div>
+              <div class="stat-label">Dimensions (mm)</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">--</div>
+              <div class="stat-label">Print Time (400/600)</div>
+            </div>
+          </div>
+          
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" class="glaze-toggle" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">Apply Glaze</span>
+          </div>
+          
+          <div class="progress-container"></div>
+          
+          <h3>
+            <span class="material-icon">view_in_ar</span>
+            Printer Capacity
+          </h3>
+          <div class="printer-cards">
+            <div class="printer-card">
+              <div class="printer-title">Printer 400</div>
+              <div class="printer-stats" id="__printer-400-stats">
+                <p>Calculating...</p>
+              </div>
+            </div>
+            <div class="printer-card">
+              <div class="printer-title">Printer 600</div>
+              <div class="printer-stats" id="__printer-600-stats">
+                <p>Calculating...</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="packing-visualizers">
+            <div class="packing-visualizer" id="__packing-400"></div>
+            <div class="packing-visualizer" id="__packing-600"></div>
+          </div>
+          
+          <div class="row-actions">
+            <button class="btn btn-danger remove-stl-btn">
+              <span class="material-icon">delete</span> Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- JavaScript files -->
+  <!-- Core Module -->
+  <script src="js/core/constants.js"></script>
+  <script src="js/core/utils.js"></script>
+  <script src="js/core/notification.js"></script>
+  
+  <!-- Calculation Engine -->
+  <script src="js/engine/material-calculator.js"></script>
+  <script src="js/engine/printer-capacity.js"></script>
+  <script src="js/engine/stl-processor.js"></script>
+  
+  <!-- 3D Visualization -->
+  <script src="js/visualization/three-manager.js"></script>
+  <script src="js/visualization/model-viewer.js"></script>
+  
+  <!-- UI Modules -->
+  <script src="js/ui/tab-manager.js"></script>
+  <script src="js/ui/stl-manager.js"></script>
+  <script src="js/ui/settings-manager.js"></script>
+  <script src="js/ui/theme-manager.js"></script>
+  
+  <!-- Main Application -->
+  <script src="js/app.js"></script>
+</body>
+</html>
