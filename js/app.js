@@ -6,36 +6,51 @@
 
 // Wait for DOM content to be loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing 3D Printer Calculator...');
+  console.log('Initializing 3D Printer Calculator...');
+  
+  try {
+    // Ensure PrinterCalc namespace is properly initialized
+    window.PrinterCalc = window.PrinterCalc || {};
     
-    try {
+    // Wait a short time to ensure all scripts are loaded
+    setTimeout(function() {
       // Initialize all modules in order
       
       // Core modules first
-      PrinterCalc.SettingsManager.init();
-      PrinterCalc.ThemeManager.init();
-      PrinterCalc.TabManager.init();
+      if (PrinterCalc.SettingsManager && PrinterCalc.SettingsManager.init) 
+        PrinterCalc.SettingsManager.init();
+      
+      if (PrinterCalc.ThemeManager && PrinterCalc.ThemeManager.init)
+        PrinterCalc.ThemeManager.init();
+      
+      if (PrinterCalc.TabManager && PrinterCalc.TabManager.init)
+        PrinterCalc.TabManager.init();
       
       // UI Components
-      PrinterCalc.STLManager.init();
-      initManualCalculator();
+      if (PrinterCalc.STLManager && PrinterCalc.STLManager.init)
+        PrinterCalc.STLManager.init();
+      
+      if (window.initManualCalculator)
+        initManualCalculator();
       
       // Set up global event handlers
-      setupGlobalEventHandlers();
+      if (window.setupGlobalEventHandlers)
+        setupGlobalEventHandlers();
       
       console.log('Initialization complete');
-    } catch (error) {
-      console.error('Error during initialization:', error);
-      
-      // Show error notification
-      if (PrinterCalc.Notification) {
-        PrinterCalc.Notification.error(
-          'Initialization Error',
-          'There was an error initializing the application. Please reload the page.'
-        );
-      }
+    }, 100);
+  } catch (error) {
+    console.error('Error during initialization:', error);
+    
+    // Show error notification
+    if (PrinterCalc.Notification) {
+      PrinterCalc.Notification.error(
+        'Initialization Error',
+        'There was an error initializing the application. Please reload the page.'
+      );
     }
-  });
+  }
+});
   
   /**
    * Initialize manual calculator tab

@@ -40,17 +40,25 @@
        * @returns {string} Row ID
        */
       createSTLRow: function() {
-        // Generate a unique ID
-        const rowId = PrinterCalc.Utils.generateId();
-        
-        // Get container
-        const container = document.getElementById('stlRows');
-        if (!container) {
-          console.error('STL rows container not found');
-          return null;
-        }
-        
         try {
+          // Local fallback function for generating IDs if Utils.generateId is not available
+          const generateFallbackId = function() {
+            return 'id-' + Math.random().toString(36).substring(2, 15) + 
+                   Math.random().toString(36).substring(2, 15);
+          };
+          
+          // Generate a unique ID using either Utils.generateId or our fallback
+          const rowId = (PrinterCalc.Utils && typeof PrinterCalc.Utils.generateId === 'function') 
+                       ? PrinterCalc.Utils.generateId() 
+                       : generateFallbackId();
+          
+          // Get container
+          const container = document.getElementById('stlRows');
+          if (!container) {
+            console.error('STL rows container not found');
+            return null;
+          }
+          
           // Clone template
           const template = document.getElementById('stl-row-template');
           if (!template) {
@@ -86,8 +94,13 @@
             viewerId: null,
             orientation: 'flat',
             applyGlaze: true,
-            currency: PrinterCalc.SettingsManager.getSetting('currency') || 'USD'
+            currency: 'USD' // Default to USD if SettingsManager is not available
           };
+          
+          // Try to get currency from settings if available
+          if (PrinterCalc.SettingsManager && typeof PrinterCalc.SettingsManager.getSetting === 'function') {
+            this.rows[rowId].currency = PrinterCalc.SettingsManager.getSetting('currency') || 'USD';
+          }
           
           return rowId;
         } catch (error) {
@@ -193,10 +206,14 @@
         try {
           // Check file validity
           if (!file || !file.name.toLowerCase().endsWith('.stl')) {
-            PrinterCalc.Notification.error(
-              'Invalid File',
-              'Please upload a valid STL file.'
-            );
+            if (PrinterCalc.Notification) {
+              PrinterCalc.Notification.error(
+                'Invalid File',
+                'Please upload a valid STL file.'
+              );
+            } else {
+              alert('Please upload a valid STL file.');
+            }
             return;
           }
           
@@ -226,6 +243,16 @@
             }, 500);
           }
           
+          // Make sure ModelViewer is available
+          if (!PrinterCalc.ModelViewer || typeof PrinterCalc.ModelViewer.init !== 'function') {
+            if (errorMessage) {
+              errorMessage.textContent = 'Model viewer not available. Please reload the page.';
+              errorMessage.style.display = 'block';
+            }
+            if (loadingMessage) loadingMessage.style.display = 'none';
+            return;
+          }
+          
           // Initialize 3D viewer if needed
           if (!this.rows[rowId].viewerId && modelViewer) {
             // Create unique viewer ID
@@ -233,6 +260,16 @@
             
             // Initialize model viewer
             this.rows[rowId].viewerId = PrinterCalc.ModelViewer.init(modelViewer);
+          }
+          
+          // Make sure STLProcessor is available
+          if (!PrinterCalc.STLProcessor || typeof PrinterCalc.STLProcessor.processFile !== 'function') {
+            if (errorMessage) {
+              errorMessage.textContent = 'STL processor not available. Please reload the page.';
+              errorMessage.style.display = 'block';
+            }
+            if (loadingMessage) loadingMessage.style.display = 'none';
+            return;
           }
           
           // Process STL file
@@ -250,10 +287,14 @@
             
             if (loadingMessage) loadingMessage.style.display = 'none';
             
-            PrinterCalc.Notification.error(
-              'Processing Error',
-              error.message || 'Error processing STL file'
-            );
+            if (PrinterCalc.Notification) {
+              PrinterCalc.Notification.error(
+                'Processing Error',
+                error.message || 'Error processing STL file'
+              );
+            } else {
+              alert('Error processing STL file: ' + (error.message || 'Unknown error'));
+            }
             
             return;
           }
@@ -266,23 +307,27 @@
           // Store STL data
           this.rows[rowId].stlData = {
             file,
-            volumeCm3: stlData.volumeCm3,
-            dimensions: stlData.dimensions,
-            triangleCount: stlData.triangleCount
+            volumeCm3: stlData.volumeCm3 || 0,
+            dimensions: stlData.dimensions || {width: 0, depth: 0, height: 0},
+            triangleCount: stlData.triangleCount || 0
           };
           
           // Load model into viewer
           try {
-            await PrinterCalc.ModelViewer.loadSTL(
-              this.rows[rowId].viewerId,
-              file
-            );
-            
-            // Apply current orientation
-            PrinterCalc.ModelViewer.changeOrientation(
-              this.rows[rowId].viewerId,
-              this.rows[rowId].orientation
-            );
+            if (PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.loadSTL === 'function') {
+              await PrinterCalc.ModelViewer.loadSTL(
+                this.rows[rowId].viewerId,
+                file
+              );
+              
+              // Apply current orientation
+              if (PrinterCalc.ModelViewer.changeOrientation) {
+                PrinterCalc.ModelViewer.changeOrientation(
+                  this.rows[rowId].viewerId,
+                  this.rows[rowId].orientation
+                );
+              }
+            }
           } catch (viewerError) {
             console.error('Error displaying model:', viewerError);
           }
@@ -296,18 +341,34 @@
           this.updateResults(rowId);
           
           // Show success notification
-          PrinterCalc.Notification.success(
-            'STL Loaded',
-            `Model loaded successfully (${stlData.triangleCount.toLocaleString()} triangles)`
-          );
+          if (PrinterCalc.Notification) {
+            PrinterCalc.Notification.success(
+              'STL Loaded',
+              `Model loaded successfully (${stlData.triangleCount.toLocaleString()} triangles)`
+            );
+          }
         } catch (error) {
           console.error('Error handling file upload:', error);
           
+          // Show error in the UI
+          if (row) {
+            const errorMessage = row.querySelector('.error-message');
+            if (errorMessage) {
+              errorMessage.textContent = 'Error processing file: ' + (error.message || 'Unknown error');
+              errorMessage.style.display = 'block';
+            }
+            
+            const loadingMessage = row.querySelector('.loading-message');
+            if (loadingMessage) loadingMessage.style.display = 'none';
+          }
+          
           // Show error notification
-          PrinterCalc.Notification.error(
-            'Upload Error',
-            'An error occurred while processing the file.'
-          );
+          if (PrinterCalc.Notification) {
+            PrinterCalc.Notification.error(
+              'Upload Error',
+              'An error occurred while processing the file.'
+            );
+          }
         }
       },
       
@@ -533,38 +594,41 @@ const printTimes = PrinterCalc.MaterialCalculator.calculatePrintTimes(
        */
 
       updatePrinterStats: function(element, capacity, currency) {
-        console.log('updatePrinterStats called for element:', element?.id);
-        console.log('capacity:', capacity);
-        console.log('currency:', currency);
-        
-        if (!element || !capacity) {
-          console.log('Missing element or capacity, returning early');
-          return;
-        }
+        if (!element || !capacity) return;
         
         if (capacity.fitsInPrinter) {
           // Get row ID from element ID
           const rowId = element.id.split('-')[0];
-          console.log('Row ID:', rowId);
           
           // Get the calculated material cost directly
           const rowData = this.rows[rowId];
-          console.log('Row data:', rowData);
           
           let singleObjectCost = 0;
           
           if (rowData && rowData.materialResult && rowData.materialResult.costs) {
             // Use the already calculated material cost
             singleObjectCost = rowData.materialResult.costs.total;
-            console.log('Found singleObjectCost:', singleObjectCost);
-          } else {
-            console.log('materialResult not found in row data!');
-            console.log('rowData structure:', JSON.stringify(rowData, null, 2));
+          }
+          
+          // Make sure the cost is a valid number
+          if (isNaN(singleObjectCost) || singleObjectCost <= 0) {
+            // Attempt to recalculate if we have the volumeCm3
+            if (rowData && rowData.stlData && rowData.stlData.volumeCm3) {
+              try {
+                const materialResult = PrinterCalc.MaterialCalculator.calculate(
+                  rowData.stlData.volumeCm3,
+                  rowData.applyGlaze,
+                  currency
+                );
+                singleObjectCost = materialResult.costs.total;
+              } catch (e) {
+                console.error('Error recalculating cost:', e);
+              }
+            }
           }
           
           // Calculate total cost for all objects
           const batchCost = capacity.totalObjects * singleObjectCost;
-          console.log('Calculating batch cost:', capacity.totalObjects, 'x', singleObjectCost, '=', batchCost);
           
           // Build HTML content
           element.innerHTML = `
@@ -573,16 +637,14 @@ const printTimes = PrinterCalc.MaterialCalculator.calculatePrintTimes(
             <p>Print Time: ${capacity.formattedPrintTime}</p>
             <p>Total Cost: ${PrinterCalc.Utils.formatCurrency(batchCost, currency)}</p>
           `;
-          console.log('Updated element HTML for printer stats');
         } else {
           // Object doesn't fit
           element.innerHTML = `
             <p style="color: var(--danger); font-weight: 600;">Object exceeds printer capacity</p>
             <p>Check dimensions or change orientation</p>
           `;
-          console.log('Object does not fit in printer');
         }
-},
+      },
       
       /**
        * Update packing visualization

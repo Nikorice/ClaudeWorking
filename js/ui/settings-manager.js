@@ -213,11 +213,16 @@
         const currency = this.current.currency;
         const pricing = PrinterCalc.CONSTANTS.PRICING[currency] || PrinterCalc.CONSTANTS.PRICING.USD;
         
-        // Update pricing fields
-        document.getElementById('pricePowder')?.setAttribute('value', pricing.powder.toFixed(3));
-        document.getElementById('priceBinder')?.setAttribute('value', pricing.binder.toFixed(3));
-        document.getElementById('priceSilica')?.setAttribute('value', pricing.silica.toFixed(3));
-        document.getElementById('priceGlaze')?.setAttribute('value', pricing.glaze.toFixed(4));
+        // Update pricing fields with proper formatting
+        const pricePowder = document.getElementById('pricePowder');
+        const priceBinder = document.getElementById('priceBinder');
+        const priceSilica = document.getElementById('priceSilica');
+        const priceGlaze = document.getElementById('priceGlaze');
+        
+        if (pricePowder) pricePowder.value = pricing.powder.toFixed(2);
+        if (priceBinder) priceBinder.value = pricing.binder.toFixed(2);
+        if (priceSilica) priceSilica.value = pricing.silica.toFixed(2);
+        if (priceGlaze) priceGlaze.value = pricing.glaze.toFixed(2);
         
         // Update currency labels
         const currencyLabels = document.querySelectorAll('.input-group-append');
@@ -232,25 +237,41 @@
       updatePricing: function() {
         const currency = this.current.currency;
         
-        // Get values from inputs
-        const powderPrice = parseFloat(document.getElementById('pricePowder')?.value) || 
-                           PrinterCalc.CONSTANTS.PRICING[currency].powder;
+        // Get values from inputs with proper validation
+        const powderPriceInput = document.getElementById('pricePowder');
+        const binderPriceInput = document.getElementById('priceBinder');
+        const silicaPriceInput = document.getElementById('priceSilica');
+        const glazePriceInput = document.getElementById('priceGlaze');
         
-        const binderPrice = parseFloat(document.getElementById('priceBinder')?.value) || 
-                           PrinterCalc.CONSTANTS.PRICING[currency].binder;
+        // Parse values with fallbacks to existing values
+        const powderPrice = powderPriceInput && !isNaN(parseFloat(powderPriceInput.value)) 
+            ? parseFloat(powderPriceInput.value) 
+            : PrinterCalc.CONSTANTS.PRICING[currency].powder;
         
-        const silicaPrice = parseFloat(document.getElementById('priceSilica')?.value) || 
-                           PrinterCalc.CONSTANTS.PRICING[currency].silica;
+        const binderPrice = binderPriceInput && !isNaN(parseFloat(binderPriceInput.value))
+            ? parseFloat(binderPriceInput.value)
+            : PrinterCalc.CONSTANTS.PRICING[currency].binder;
         
-        const glazePrice = parseFloat(document.getElementById('priceGlaze')?.value) || 
-                          PrinterCalc.CONSTANTS.PRICING[currency].glaze;
+        const silicaPrice = silicaPriceInput && !isNaN(parseFloat(silicaPriceInput.value))
+            ? parseFloat(silicaPriceInput.value)
+            : PrinterCalc.CONSTANTS.PRICING[currency].silica;
         
-        // Update pricing constants
+        const glazePrice = glazePriceInput && !isNaN(parseFloat(glazePriceInput.value))
+            ? parseFloat(glazePriceInput.value)
+            : PrinterCalc.CONSTANTS.PRICING[currency].glaze;
+        
+        // Update field values with proper formatting
+        if (powderPriceInput) powderPriceInput.value = powderPrice.toFixed(2);
+        if (binderPriceInput) binderPriceInput.value = binderPrice.toFixed(2);
+        if (silicaPriceInput) silicaPriceInput.value = silicaPrice.toFixed(2);
+        if (glazePriceInput) glazePriceInput.value = glazePrice.toFixed(2);
+        
+        // Update pricing constants - making sure we use Numbers not Strings
         PrinterCalc.CONSTANTS.PRICING[currency] = {
-          powder: powderPrice,
-          binder: binderPrice,
-          silica: silicaPrice,
-          glaze: glazePrice
+          powder: Number(powderPrice),
+          binder: Number(binderPrice),
+          silica: Number(silicaPrice),
+          glaze: Number(glazePrice)
         };
         
         // Notify of changes for updates

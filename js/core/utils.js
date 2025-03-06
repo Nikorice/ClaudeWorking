@@ -221,17 +221,22 @@
        */
       readFileAsArrayBuffer: function(file) {
         return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          
-          reader.onload = function(event) {
-            resolve(event.target.result);
-          };
-          
-          reader.onerror = function(error) {
+          try {
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+              resolve(event.target.result);
+            };
+            
+            reader.onerror = function(error) {
+              reject(error);
+            };
+            
+            reader.readAsArrayBuffer(file);
+          } catch (error) {
+            console.error('Error reading file:', error);
             reject(error);
-          };
-          
-          reader.readAsArrayBuffer(file);
+          }
         });
       },
       
@@ -247,9 +252,12 @@
         // Clear container
         container.innerHTML = '';
         
-     // Get total cost and currency symbol
-const totalCost = costs.total;
-const symbol = PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS[currency] || '$';
+        // Get total cost and currency symbol
+        const totalCost = costs.total;
+        const symbol = PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS[currency] || '$';
+        
+        // Skip if total cost is invalid
+        if (isNaN(totalCost) || totalCost <= 0) return;
         
         // Cost items to display
         const costItems = [
@@ -300,5 +308,4 @@ const symbol = PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS[currency] || '$';
           container.appendChild(progressItem);
         });
       }
-    };
-  })();
+  }})
