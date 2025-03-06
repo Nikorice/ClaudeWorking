@@ -208,24 +208,29 @@ document.addEventListener('DOMContentLoaded', function() {
           currency
         );
       }
-      
-      // Update printer stats
-      const printer400Stats = document.getElementById('manual-printer400-stats');
-      if (printer400Stats) {
-        if (capacity400.fitsInPrinter) {
-          printer400Stats.innerHTML = `
-            <p><span class="printer-highlight">${capacity400.totalObjects}</span> objects</p>
-            <p>Arrangement: ${capacity400.arrangement}</p>
-            <p>Print Time: ${capacity400.formattedPrintTime}</p>
-            <p>Total Cost: ${PrinterCalc.Utils.formatCurrency(capacity400.totalObjects * materialResult.costs.total, currency)}</p>
-          `;
-        } else {
-          printer400Stats.innerHTML = `
-            <p style="color: var(--danger); font-weight: 600;">Object exceeds printer capacity</p>
-            <p>Check dimensions or change orientation</p>
-          `;
-        }
-      }
+
+      console.log('Manual calculator - materialResult:', materialResult);
+      console.log('Manual calculator - capacity400:', capacity400);
+      console.log('Manual calculator - totalObjects:', capacity400.totalObjects);
+      console.log('Manual calculator - singleObjectCost:', materialResult.costs.total);
+      console.log('Manual calculator - totalCost:', capacity400.totalObjects * materialResult.costs.total);
+    // Update printer stats
+const printer400Stats = document.getElementById('manual-printer400-stats');
+if (printer400Stats) {
+  if (capacity400.fitsInPrinter) {
+    printer400Stats.innerHTML = `
+      <p><span class="printer-highlight">${capacity400.totalObjects}</span> objects</p>
+      <p>Arrangement: ${capacity400.arrangement}</p>
+      <p>Print Time: ${capacity400.formattedPrintTime}</p>
+      <p>Total Cost: ${PrinterCalc.Utils.formatCurrency(capacity400.totalObjects * materialResult.costs.total, currency)}</p>
+    `;
+  } else {
+    printer400Stats.innerHTML = `
+      <p style="color: var(--danger); font-weight: 600;">Object exceeds printer capacity</p>
+      <p>Check dimensions or change orientation</p>
+    `;
+  }
+}
       
       const printer600Stats = document.getElementById('manual-printer600-stats');
       if (printer600Stats) {

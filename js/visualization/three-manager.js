@@ -156,53 +156,10 @@
        * @param {THREE.OrbitControls} controls - OrbitControls object
        */
       createControlButtons: function(container, scene, camera, controls) {
-        try {
-          // Create controls container if it doesn't exist
-          let controlsContainer = container.querySelector('.viewer-controls');
-          if (!controlsContainer) {
-            controlsContainer = document.createElement('div');
-            controlsContainer.className = 'viewer-controls';
-            container.appendChild(controlsContainer);
-          }
-          
-          // Reset camera button
-          const resetCameraBtn = document.createElement('button');
-          resetCameraBtn.className = 'viewer-control-btn reset-camera-btn';
-          resetCameraBtn.title = 'Reset Camera';
-          resetCameraBtn.innerHTML = '<span class="material-icon">center_focus_strong</span>';
-          resetCameraBtn.addEventListener('click', () => {
-            camera.position.set(100, 100, 100);
-            controls.target.set(0, 0, 0);
-            controls.update();
-          });
-          
-          // Toggle wireframe button
-          const toggleWireframeBtn = document.createElement('button');
-          toggleWireframeBtn.className = 'viewer-control-btn toggle-wireframe-btn';
-          toggleWireframeBtn.title = 'Toggle Wireframe';
-          toggleWireframeBtn.innerHTML = '<span class="material-icon">grid_3x3</span>';
-          toggleWireframeBtn.addEventListener('click', () => {
-            scene.traverse(object => {
-              if (object.isMesh) {
-                if (Array.isArray(object.material)) {
-                  object.material.forEach(material => {
-                    material.wireframe = !material.wireframe;
-                  });
-                } else if (object.material) {
-                  object.material.wireframe = !object.material.wireframe;
-                }
-              }
-            });
-          });
-          
-          // Add buttons to container
-          controlsContainer.appendChild(resetCameraBtn);
-          controlsContainer.appendChild(toggleWireframeBtn);
-        } catch (error) {
-          console.error('Error creating control buttons:', error);
-        }
+        // Controls have been removed as requested
+        // No controls will be added to the viewer
       },
-      
+
       /**
        * Load STL model into the scene
        * @param {Object} context - Viewer context from initViewer()

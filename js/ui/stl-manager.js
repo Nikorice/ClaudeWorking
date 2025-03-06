@@ -420,18 +420,23 @@
             };
           }
           
-          // Calculate material costs
-          const materialResult = PrinterCalc.MaterialCalculator.calculate(
-            volumeCm3,
-            applyGlaze,
-            currency
-          );
-          
-          // Calculate print times
-          const printTimes = PrinterCalc.MaterialCalculator.calculatePrintTimes(
-            orientedDimensions,
-            orientation
-          );
+         // Calculate material costs
+const materialResult = PrinterCalc.MaterialCalculator.calculate(
+  volumeCm3,
+  applyGlaze,
+  currency
+);
+
+console.log('materialResult:', materialResult);
+console.log('Storing materialResult in row:', rowId);
+this.rows[rowId].materialResult = materialResult;
+console.log('After storing, row data is:', this.rows[rowId]);
+
+// Calculate print times
+const printTimes = PrinterCalc.MaterialCalculator.calculatePrintTimes(
+  orientedDimensions,
+  orientation
+);
           
           // Calculate printer capacity
           const capacity400 = PrinterCalc.PrinterCapacity.calculate(
@@ -526,14 +531,40 @@
        * @param {Object} capacity - Capacity data
        * @param {string} currency - Currency code
        */
+
       updatePrinterStats: function(element, capacity, currency) {
-        if (!element || !capacity) return;
+        console.log('updatePrinterStats called for element:', element?.id);
+        console.log('capacity:', capacity);
+        console.log('currency:', currency);
+        
+        if (!element || !capacity) {
+          console.log('Missing element or capacity, returning early');
+          return;
+        }
         
         if (capacity.fitsInPrinter) {
-          // Calculate batch cost
+          // Get row ID from element ID
           const rowId = element.id.split('-')[0];
-          const materialCost = this.rows[rowId]?.stlData?.materialCost || 0;
-          const batchCost = capacity.totalObjects * materialCost;
+          console.log('Row ID:', rowId);
+          
+          // Get the calculated material cost directly
+          const rowData = this.rows[rowId];
+          console.log('Row data:', rowData);
+          
+          let singleObjectCost = 0;
+          
+          if (rowData && rowData.materialResult && rowData.materialResult.costs) {
+            // Use the already calculated material cost
+            singleObjectCost = rowData.materialResult.costs.total;
+            console.log('Found singleObjectCost:', singleObjectCost);
+          } else {
+            console.log('materialResult not found in row data!');
+            console.log('rowData structure:', JSON.stringify(rowData, null, 2));
+          }
+          
+          // Calculate total cost for all objects
+          const batchCost = capacity.totalObjects * singleObjectCost;
+          console.log('Calculating batch cost:', capacity.totalObjects, 'x', singleObjectCost, '=', batchCost);
           
           // Build HTML content
           element.innerHTML = `
@@ -542,14 +573,16 @@
             <p>Print Time: ${capacity.formattedPrintTime}</p>
             <p>Total Cost: ${PrinterCalc.Utils.formatCurrency(batchCost, currency)}</p>
           `;
+          console.log('Updated element HTML for printer stats');
         } else {
           // Object doesn't fit
           element.innerHTML = `
             <p style="color: var(--danger); font-weight: 600;">Object exceeds printer capacity</p>
             <p>Check dimensions or change orientation</p>
           `;
+          console.log('Object does not fit in printer');
         }
-      },
+},
       
       /**
        * Update packing visualization
