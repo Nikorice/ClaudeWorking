@@ -22,7 +22,9 @@
         if (!container) return null;
         
         // Generate a unique ID for this viewer
-        const viewerId = container.id || PrinterCalc.Utils.generateId();
+const viewerId = container.id || (PrinterCalc.Utils && typeof PrinterCalc.Utils.generateId === 'function') 
+? PrinterCalc.Utils.generateId() 
+: ('viewer-' + Math.random().toString(36).substring(2, 15));
         
         // Initialize Three.js viewer
         const threeContext = PrinterCalc.ThreeManager.initViewer(container);
@@ -59,7 +61,26 @@
           // Get array buffer if file was provided
           let arrayBuffer;
           if (stlFile instanceof File) {
-            arrayBuffer = await PrinterCalc.Utils.readFileAsArrayBuffer(stlFile);
+            if (PrinterCalc.Utils && typeof PrinterCalc.Utils.readFileAsArrayBuffer === 'function') {
+              arrayBuffer = await PrinterCalc.Utils.readFileAsArrayBuffer(stlFile);
+            } else {
+              // Fallback implementation
+              arrayBuffer = await new Promise((resolve, reject) => {
+                try {
+                  const reader = new FileReader();
+                  reader.onload = function(event) {
+                    resolve(event.target.result);
+                  };
+                  reader.onerror = function(error) {
+                    reject(error);
+                  };
+                  reader.readAsArrayBuffer(stlFile);
+                } catch (error) {
+                  console.error('Error reading file:', error);
+                  reject(error);
+                }
+              });
+            }
           } else if (stlFile instanceof ArrayBuffer) {
             arrayBuffer = stlFile;
           } else {

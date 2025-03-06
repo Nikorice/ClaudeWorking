@@ -12,33 +12,58 @@ document.addEventListener('DOMContentLoaded', function() {
     // Ensure PrinterCalc namespace is properly initialized
     window.PrinterCalc = window.PrinterCalc || {};
     
-    // Wait a short time to ensure all scripts are loaded
+   // Increase wait time to ensure all scripts are loaded
+setTimeout(function() {
+  try {
+    console.log('Starting initialization...');
+    
+    // Core modules first - confirm each one is initialized before moving on
+    if (PrinterCalc.Utils) {
+      console.log('Utils loaded');
+    } else {
+      console.warn('Utils not available - some functionality may be limited');
+    }
+    
+    if (PrinterCalc.SettingsManager && PrinterCalc.SettingsManager.init) {
+      PrinterCalc.SettingsManager.init();
+      console.log('SettingsManager initialized');
+    }
+    
+    if (PrinterCalc.ThemeManager && PrinterCalc.ThemeManager.init) {
+      PrinterCalc.ThemeManager.init();
+      console.log('ThemeManager initialized');
+    }
+    
+    if (PrinterCalc.TabManager && PrinterCalc.TabManager.init) {
+      PrinterCalc.TabManager.init();
+      console.log('TabManager initialized');
+    }
+    
+    // Wait a bit longer before initializing UI components that depend on core modules
     setTimeout(function() {
-      // Initialize all modules in order
-      
-      // Core modules first
-      if (PrinterCalc.SettingsManager && PrinterCalc.SettingsManager.init) 
-        PrinterCalc.SettingsManager.init();
-      
-      if (PrinterCalc.ThemeManager && PrinterCalc.ThemeManager.init)
-        PrinterCalc.ThemeManager.init();
-      
-      if (PrinterCalc.TabManager && PrinterCalc.TabManager.init)
-        PrinterCalc.TabManager.init();
-      
       // UI Components
-      if (PrinterCalc.STLManager && PrinterCalc.STLManager.init)
+      if (PrinterCalc.STLManager && PrinterCalc.STLManager.init) {
         PrinterCalc.STLManager.init();
+        console.log('STLManager initialized');
+      }
       
-      if (window.initManualCalculator)
+      if (window.initManualCalculator) {
         initManualCalculator();
+        console.log('Manual calculator initialized');
+      }
       
       // Set up global event handlers
-      if (window.setupGlobalEventHandlers)
+      if (window.setupGlobalEventHandlers) {
         setupGlobalEventHandlers();
+        console.log('Global event handlers set up');
+      }
       
       console.log('Initialization complete');
-    }, 100);
+    }, 200);
+  } catch (error) {
+    console.error('Error during initialization process:', error);
+  }
+}, 300);
   } catch (error) {
     console.error('Error during initialization:', error);
     
