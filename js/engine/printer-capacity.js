@@ -5,28 +5,52 @@
  */
 
 (function() {
-    // Make sure the namespace exists
-    window.PrinterCalc = window.PrinterCalc || {};
-    
-    // Create a capacity calculator module
-    PrinterCalc.PrinterCapacity = {
-      /**
-       * Calculate printer capacity for an object
-       * @param {Object} dimensions - Width, depth, height of the object
-       * @param {string} orientation - "flat" or "vertical"
-       * @param {string} printerType - "400" or "600"
-       * @returns {Object} Capacity information
-       */
-      calculate: function(dimensions, orientation, printerType = '400') {
-        // Get printer specifications
-        const printer = PrinterCalc.CONSTANTS.PRINTERS[printerType];
-        if (!printer) {
-          throw new Error(`Unknown printer type: ${printerType}`);
+  // Make sure the namespace exists
+  window.PrinterCalc = window.PrinterCalc || {};
+  
+  // Create a capacity calculator module
+  PrinterCalc.PrinterCapacity = {
+    /**
+     * Calculate printer capacity for an object
+     * @param {Object} dimensions - Width, depth, height of the object
+     * @param {string} orientation - "flat" or "vertical"
+     * @param {string} printerType - "400" or "600"
+     * @returns {Object} Capacity information
+     */
+    calculate: function(dimensions, orientation, printerType = '400') {
+      try {
+        // Check if required constants are available
+        if (!PrinterCalc.CONSTANTS || !PrinterCalc.CONSTANTS.PRINTERS) {
+          console.error('CONSTANTS not available for printer capacity calculation');
+          return {
+            fitsInPrinter: false,
+            countX: 0,
+            countY: 0,
+            countZ: 0,
+            totalObjects: 0,
+            arrangement: '0 × 0 × 0',
+            positions: []
+          };
         }
         
-        // Get spacing constants
-        const wallMargin = printer.wallMargin;
-        const objectSpacing = PrinterCalc.CONSTANTS.SPACING.OBJECT_SPACING;
+        // Get printer specifications with fallback
+        const printer = PrinterCalc.CONSTANTS.PRINTERS[printerType];
+        if (!printer) {
+          console.error(`Unknown printer type: ${printerType}`);
+          return {
+            fitsInPrinter: false,
+            countX: 0,
+            countY: 0,
+            countZ: 0,
+            totalObjects: 0,
+            arrangement: '0 × 0 × 0',
+            positions: []
+          };
+        }
+        
+        // Get spacing constants with fallbacks
+        const wallMargin = printer.wallMargin || 10;
+        const objectSpacing = (PrinterCalc.CONSTANTS.SPACING && PrinterCalc.CONSTANTS.SPACING.OBJECT_SPACING) || 15;
         
         // Determine object dimensions based on orientation
         let objectWidth, objectDepth, objectHeight;
@@ -86,9 +110,32 @@
         // Calculate maximum print height
         const printHeight = countZ * objectHeight;
         
-        // Calculate print time
-        const layers = Math.ceil(printHeight / PrinterCalc.CONSTANTS.SPACING.LAYER_HEIGHT);
-        const printTimeSeconds = layers * printer.layerTime;
+        // Calculate print time with fallback
+        let printTimeSeconds = 0;
+        let formattedPrintTime = '--';
+        
+        try {
+          // Get layer height with fallback
+          const layerHeight = (PrinterCalc.CONSTANTS.SPACING && PrinterCalc.CONSTANTS.SPACING.LAYER_HEIGHT) || 0.1;
+          
+          // Calculate layers
+          const layers = Math.ceil(printHeight / layerHeight);
+          
+          // Calculate print time
+          printTimeSeconds = layers * printer.layerTime;
+          
+          // Format time with fallback
+          if (PrinterCalc.Utils && typeof PrinterCalc.Utils.formatPrintTime === 'function') {
+            formattedPrintTime = PrinterCalc.Utils.formatPrintTime(printTimeSeconds);
+          } else {
+            // Fallback time formatting
+            const hours = Math.floor(printTimeSeconds / 3600);
+            const minutes = Math.floor((printTimeSeconds % 3600) / 60);
+            formattedPrintTime = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+          }
+        } catch (timeError) {
+          console.error('Error calculating print time:', timeError);
+        }
         
         return {
           fitsInPrinter: true,
@@ -100,28 +147,42 @@
           positions,
           printHeight,
           printTime: printTimeSeconds,
-          formattedPrintTime: PrinterCalc.Utils.formatPrintTime(printTimeSeconds),
+          formattedPrintTime,
           objectDimensions: {
             width: objectWidth,
             depth: objectDepth,
             height: objectHeight
           }
         };
-      },
-      
-      /**
-       * Generate positions for objects in the printer
-       * @param {number} width - Object width
-       * @param {number} depth - Object depth 
-       * @param {number} height - Object height
-       * @param {number} countX - Number of objects in X direction
-       * @param {number} countY - Number of objects in Y direction
-       * @param {number} countZ - Number of objects in Z direction
-       * @param {number} wallMargin - Margin from printer walls
-       * @param {number} spacing - Spacing between objects
-       * @returns {Array} Array of position objects {x, y, z}
-       */
-      generatePositions: function(width, depth, height, countX, countY, countZ, wallMargin, spacing) {
+      } catch (error) {
+        console.error('Error in printer capacity calculation:', error);
+        return {
+          fitsInPrinter: false,
+          countX: 0,
+          countY: 0,
+          countZ: 0,
+          totalObjects: 0,
+          arrangement: '0 × 0 × 0',
+          positions: [],
+          error: error.message
+        };
+      }
+    },
+    
+    /**
+     * Generate positions for objects in the printer
+     * @param {number} width - Object width
+     * @param {number} depth - Object depth 
+     * @param {number} height - Object height
+     * @param {number} countX - Number of objects in X direction
+     * @param {number} countY - Number of objects in Y direction
+     * @param {number} countZ - Number of objects in Z direction
+     * @param {number} wallMargin - Margin from printer walls
+     * @param {number} spacing - Spacing between objects
+     * @returns {Array} Array of position objects {x, y, z}
+     */
+    generatePositions: function(width, depth, height, countX, countY, countZ, wallMargin, spacing) {
+      try {
         const positions = [];
         
         for (let z = 0; z < countZ; z++) {
@@ -143,22 +204,31 @@
         }
         
         return positions;
-      },
-      
-      /**
-       * Visualize printer capacity on a canvas
-       * @param {HTMLCanvasElement} canvas - Canvas element to draw on
-       * @param {Object} capacityData - Data from calculate() method
-       * @param {Object} printer - Printer specifications
-       */
-      visualize: function(canvas, capacityData, printer) {
+      } catch (error) {
+        console.error('Error generating positions:', error);
+        return [];
+      }
+    },
+    
+    /**
+     * Visualize printer capacity on a canvas
+     * @param {HTMLCanvasElement} canvas - Canvas element to draw on
+     * @param {Object} capacityData - Data from calculate() method
+     * @param {Object} printer - Printer specifications
+     */
+    visualize: function(canvas, capacityData, printer) {
+      try {
         if (!canvas || !canvas.getContext || !capacityData || !printer) {
+          console.error('Missing required parameters for visualization');
           return;
         }
         
         // Get canvas context
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!ctx) {
+          console.error('Could not get canvas context');
+          return;
+        }
         
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -169,8 +239,20 @@
           return;
         }
         
-        // Determine if we're in dark mode
-        const isDarkMode = PrinterCalc.Utils.getCurrentTheme() === 'dark';
+        // Determine if we're in dark mode - with fallback
+        let isDarkMode = false;
+        try {
+          if (PrinterCalc.Utils && typeof PrinterCalc.Utils.getCurrentTheme === 'function') {
+            isDarkMode = PrinterCalc.Utils.getCurrentTheme() === 'dark';
+          } else {
+            // Fallback method to detect dark mode
+            isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+          }
+        } catch (themeError) {
+          console.error('Error determining theme:', themeError);
+          // Default to light mode
+          isDarkMode = false;
+        }
         
         // Set up colors based on theme
         const colors = {
@@ -268,17 +350,45 @@
         
         // Reset transformation
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-      },
-      
-      /**
-       * Draw "Does not fit" message on canvas
-       * @param {CanvasRenderingContext2D} ctx - Canvas context
-       * @param {number} width - Canvas width
-       * @param {number} height - Canvas height
-       */
-      drawNoFitMessage: function(ctx, width, height) {
-        // Determine if we're in dark mode
-        const isDarkMode = PrinterCalc.Utils.getCurrentTheme() === 'dark';
+      } catch (error) {
+        console.error('Error in printer capacity visualization:', error);
+        // Try to draw the error message if possible
+        if (canvas && canvas.getContext) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#64748b';
+            ctx.fillText('Error visualizing printer capacity', canvas.width / 2, canvas.height / 2);
+          }
+        }
+      }
+    },
+    
+    /**
+     * Draw "Does not fit" message on canvas
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height
+     */
+    drawNoFitMessage: function(ctx, width, height) {
+      try {
+        // Determine if we're in dark mode - with fallback
+        let isDarkMode = false;
+        try {
+          if (PrinterCalc.Utils && typeof PrinterCalc.Utils.getCurrentTheme === 'function') {
+            isDarkMode = PrinterCalc.Utils.getCurrentTheme() === 'dark';
+          } else {
+            // Fallback method to detect dark mode
+            isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+          }
+        } catch (themeError) {
+          console.error('Error determining theme:', themeError);
+          // Default to light mode
+          isDarkMode = false;
+        }
         
         // Set text style
         ctx.font = 'bold 16px Arial';
@@ -288,6 +398,19 @@
         
         // Draw message
         ctx.fillText('Object exceeds printer capacity', width / 2, height / 2);
+      } catch (error) {
+        console.error('Error drawing no-fit message:', error);
+        // Fallback to simpler message
+        try {
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#64748b';
+          ctx.fillText('Exceeds capacity', width / 2, height / 2);
+        } catch (fallbackError) {
+          console.error('Could not draw fallback message:', fallbackError);
+        }
       }
-    };
-  })();
+    }
+  };
+})();

@@ -26,7 +26,7 @@
       }
 
       // Get material constants
-      const { POWDER_DENSITY, BINDER_RATIO, SILICA_DENSITY } = PrinterCalc.CONSTANTS.MATERIALS;
+      const { POWDER_DENSITY, BINDER_RATIO, SILICA_DENSITY, GLAZE_FACTOR, GLAZE_BASE } = PrinterCalc.CONSTANTS.MATERIALS;
 
       // Get pricing data for selected currency
       const pricing = PrinterCalc.CONSTANTS.PRICING[currency] || PrinterCalc.CONSTANTS.PRICING.USD;
@@ -36,8 +36,17 @@
       const binder = volumeCm3 * BINDER_RATIO; // ml
       const silica = volumeCm3 * SILICA_DENSITY; // g
 
-      // Calculate glaze amount (if enabled)
-      const glaze = applyGlaze ? PrinterCalc.Utils.calculateGlazeUsage(volumeCm3) : 0; // g
+      // Calculate glaze amount (if enabled) - with fallback if Utils is not available
+      let glaze = 0;
+      if (applyGlaze) {
+        if (PrinterCalc.Utils && typeof PrinterCalc.Utils.calculateGlazeUsage === 'function') {
+          // Use Utils method if available
+          glaze = PrinterCalc.Utils.calculateGlazeUsage(volumeCm3);
+        } else {
+          // Fallback implementation
+          glaze = (GLAZE_FACTOR * volumeCm3) + GLAZE_BASE;
+        }
+      }
 
       // Calculate component costs
       const powderCost = powder * pricing.powder;
@@ -48,11 +57,11 @@
       // Calculate total cost
       const totalCost = powderCost + binderCost + silicaCost + glazeCost;
 
-      // Calculate material percentages
-      const powderPercentage = (powderCost / totalCost) * 100;
-      const binderPercentage = (binderCost / totalCost) * 100;
-      const silicaPercentage = (silicaCost / totalCost) * 100;
-      const glazePercentage = applyGlaze ? (glazeCost / totalCost) * 100 : 0;
+      // Calculate material percentages (with check for zero to avoid division by zero)
+      const powderPercentage = totalCost > 0 ? (powderCost / totalCost) * 100 : 0;
+      const binderPercentage = totalCost > 0 ? (binderCost / totalCost) * 100 : 0;
+      const silicaPercentage = totalCost > 0 ? (silicaCost / totalCost) * 100 : 0;
+      const glazePercentage = applyGlaze && totalCost > 0 ? (glazeCost / totalCost) * 100 : 0;
 
       // Calculate total weight (convert powder kg to g)
       const totalWeight = (powder * 1000) + silica + glaze;
@@ -98,26 +107,73 @@
      * @returns {Object} Print times for both printer models
      */
     calculatePrintTimes: function (dimensions, orientation) {
+      // Check if required objects exist
+      if (!PrinterCalc.CONSTANTS || !PrinterCalc.CONSTANTS.PRINTERS) {
+        console.error('CONSTANTS not available for print time calculation');
+        return {
+          display: '--/--',
+          printer400: { fits: false, seconds: null, formatted: '--' },
+          printer600: { fits: false, seconds: null, formatted: '--' }
+        };
+      }
+
       // Get printer specs
       const printer400 = PrinterCalc.CONSTANTS.PRINTERS['400'];
       const printer600 = PrinterCalc.CONSTANTS.PRINTERS['600'];
 
+      // Make sure we have Utils methods or create fallbacks
+      const checkFitsInPrinter = (dims, orient, printer) => {
+        if (PrinterCalc.Utils && typeof PrinterCalc.Utils.checkFitsInPrinter === 'function') {
+          return PrinterCalc.Utils.checkFitsInPrinter(dims, orient, printer);
+        } else {
+          // Simplified fallback implementation
+          const { width, depth, height } = dims;
+          const { dimensions, wallMargin } = printer;
+          const printerWidth = dimensions.width - (2 * wallMargin);
+          const printerDepth = dimensions.depth - (2 * wallMargin);
+          const printerHeight = dimensions.height;
+          
+          return width <= printerWidth && depth <= printerDepth && height <= printerHeight;
+        }
+      };
+
+      const calculatePrintTime = (dims, orient, printer) => {
+        if (PrinterCalc.Utils && typeof PrinterCalc.Utils.calculatePrintTime === 'function') {
+          return PrinterCalc.Utils.calculatePrintTime(dims, orient, printer);
+        } else {
+          // Simplified fallback implementation
+          const layerHeight = 0.1; // Default layer height
+          let printHeight = orient === 'vertical' ? 
+            Math.max(dims.width, dims.depth, dims.height) : 
+            Math.min(dims.width, dims.depth, dims.height);
+          
+          return Math.ceil(printHeight / layerHeight) * printer.layerTime;
+        }
+      };
+
+      const formatPrintTime = (seconds) => {
+        if (PrinterCalc.Utils && typeof PrinterCalc.Utils.formatPrintTime === 'function') {
+          return PrinterCalc.Utils.formatPrintTime(seconds);
+        } else {
+          // Simplified fallback implementation
+          if (isNaN(seconds) || seconds === null) return '--';
+          const hours = Math.floor(seconds / 3600);
+          const minutes = Math.floor((seconds % 3600) / 60);
+          return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+        }
+      };
+
       // Check if model fits in each printer
-      const fits400 = PrinterCalc.Utils.checkFitsInPrinter(dimensions, orientation, printer400);
-      const fits600 = PrinterCalc.Utils.checkFitsInPrinter(dimensions, orientation, printer600);
+      const fits400 = checkFitsInPrinter(dimensions, orientation, printer400);
+      const fits600 = checkFitsInPrinter(dimensions, orientation, printer600);
 
       // Calculate print times (or mark as unavailable)
-      const time400 = fits400 ?
-        PrinterCalc.Utils.calculatePrintTime(dimensions, orientation, printer400) :
-        null;
-
-      const time600 = fits600 ?
-        PrinterCalc.Utils.calculatePrintTime(dimensions, orientation, printer600) :
-        null;
+      const time400 = fits400 ? calculatePrintTime(dimensions, orientation, printer400) : null;
+      const time600 = fits600 ? calculatePrintTime(dimensions, orientation, printer600) : null;
 
       // Format times for display
-      const formatted400 = fits400 ? PrinterCalc.Utils.formatPrintTime(time400) : '--';
-      const formatted600 = fits600 ? PrinterCalc.Utils.formatPrintTime(time600) : '--';
+      const formatted400 = fits400 ? formatPrintTime(time400) : '--';
+      const formatted600 = fits600 ? formatPrintTime(time600) : '--';
 
       // Return combined time display and raw times
       return {
