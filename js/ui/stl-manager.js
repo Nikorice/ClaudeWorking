@@ -826,6 +826,23 @@
         if (printer600Stats) {
           this.updatePrinterStats(printer600Stats, capacity600, currency);
         }
+        if (PrinterCalc.PrinterCapacity && typeof PrinterCalc.PrinterCapacity.visualize === 'function') {
+          // Ensure packing visualizers are properly initialized after DOM updates
+          setTimeout(() => {
+            this.updatePackingVisualization(
+              rowId,
+              row.querySelector(`#${rowId}-packing-400`),
+              capacity400,
+              PrinterCalc.CONSTANTS.PRINTERS['400']
+            );
+            this.updatePackingVisualization(
+              rowId,
+              row.querySelector(`#${rowId}-packing-600`),
+              capacity600,
+              PrinterCalc.CONSTANTS.PRINTERS['600']
+            );
+          }, 100);
+        }
 
         // Update packing visualizations
         if (PrinterCalc.PrinterCapacity && typeof PrinterCalc.PrinterCapacity.visualize === 'function') {
@@ -920,58 +937,64 @@
      * @param {string} currency - Currency code
      */
     updatePrinterStats: function (element, capacity, currency) {
-      if (!element || !capacity) return;
-      try {
-        if (capacity.fitsInPrinter) {
-          const rowId = element.id.split('-')[0];
-          const rowData = this.rows[rowId];
-          let singleObjectCost = 0;
-          if (rowData && rowData.materialResult && rowData.materialResult.costs &&
-              !isNaN(rowData.materialResult.costs.total)) {
-            singleObjectCost = rowData.materialResult.costs.total;
-          } else if (rowData && rowData.stlData && rowData.stlData.volumeCm3) {
-            try {
-              if (PrinterCalc.MaterialCalculator && typeof PrinterCalc.MaterialCalculator.calculate === 'function') {
-                const materialResult = PrinterCalc.MaterialCalculator.calculate(
-                  rowData.stlData.volumeCm3,
-                  rowData.applyGlaze || true,
-                  currency || 'USD'
-                );
-                singleObjectCost = materialResult.costs.total;
-              } else {
-                console.error('MaterialCalculator not available for recalculation');
-              }
-            } catch (e) {
-              console.error('Error recalculating cost:', e);
-            }
-          }
-          const batchCost = capacity.totalObjects * singleObjectCost;
-          let formattedBatchCost;
-          if (PrinterCalc.Utils && typeof PrinterCalc.Utils.formatCurrency === 'function') {
-            formattedBatchCost = PrinterCalc.Utils.formatCurrency(batchCost, currency);
-          } else {
-            const symbol = (PrinterCalc.CONSTANTS && PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS)
-              ? (PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS[currency] || '$')
-              : '$';
-            formattedBatchCost = `${symbol}${batchCost.toFixed(2)}`;
-          }
-          element.innerHTML = `
-            <div>${capacity.totalObjects} objects</div>
-            <div>Arrangement: ${capacity.arrangement}</div>
-            <div>Print Time: ${capacity.formattedPrintTime || '--'}</div>
-            <div>Total Cost: ${formattedBatchCost}</div>
-          `;
+    try {
+      const rowId = element.closest('.stl-row').id;
+      const rowData = this.rows[rowId];
+ 
+      console.log('Updating printer stats, row data:', rowId, rowData);
+ 
+      let singleObjectCost = 0;
+ 
+      if (rowData && rowData.materialResult && rowData.materialResult.costs &&
+          !isNaN(rowData.materialResult.costs.total)) {
+        singleObjectCost = Number(rowData.materialResult.costs.total);
+      } else if (rowData && rowData.stlData && rowData.stlData.volumeCm3) {
+        if (PrinterCalc.MaterialCalculator && typeof PrinterCalc.MaterialCalculator.calculate === 'function') {
+          const materialResult = PrinterCalc.MaterialCalculator.calculate(
+            rowData.stlData.volumeCm3,
+            rowData.applyGlaze !== false,
+            currency || 'USD'
+          );
+          singleObjectCost = Number(materialResult.costs.total);
+          console.log('Recalculated cost:', singleObjectCost);
         } else {
-          element.innerHTML = `
-            <div style="color: red;">Object exceeds printer capacity</div>
-          `;
+          console.error('MaterialCalculator not available for recalculation');
         }
-      } catch (error) {
-        console.error('Error updating printer stats:', error);
+      }
+ 
+      const objectCount = Number(capacity.totalObjects);
+      const batchCost = objectCount * singleObjectCost;
+ 
+      console.log('STL Manager batch calculation:', objectCount, '*', singleObjectCost, '=', batchCost);
+ 
+      let formattedBatchCost;
+      if (PrinterCalc.Utils && typeof PrinterCalc.Utils.formatCurrency === 'function') {
+        formattedBatchCost = PrinterCalc.Utils.formatCurrency(batchCost, currency);
+      } else {
+        const symbol = (PrinterCalc.CONSTANTS && PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS) ?
+          (PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS[currency] || '$') : '$';
+        formattedBatchCost = `${symbol}${batchCost.toFixed(2)}`;
+      }
+ 
+      if (capacity.fitsInPrinter) {
         element.innerHTML = `
-          <div style="color: red;">Error calculating capacity</div>
+          <p><span class="printer-highlight">${capacity.totalObjects}</span> objects</p>
+          <p>Arrangement: ${capacity.arrangement}</p>
+          <p>Print Time: ${capacity.formattedPrintTime}</p>
+          <p>Total Cost: ${formattedBatchCost}</p>
+        `;
+      } else {
+        element.innerHTML = `
+          <p style="color: var(--danger); font-weight: 600;">Object exceeds printer capacity</p>
+          <p>Check dimensions or change orientation</p>
         `;
       }
+    } catch (error) {
+      console.error('Error updating printer stats:', error, error.stack);
+      element.innerHTML = `
+        <p style="color: var(--danger); font-weight: 600;">Error updating printer stats</p>
+      `;
+    }
     },
 
     /**
@@ -982,45 +1005,59 @@
      * @param {Object} printer - Printer specifications
      */
     updatePackingVisualization: function (rowId, container, capacity, printer) {
-      if (!container || !capacity || !printer) return;
-    
+      if (!container) {
+        console.error(`Missing container for row ${rowId}`);
+        return;
+      }
+
       try {
+        // Make sure container exists and is an element
+        if (!(container instanceof Element)) {
+          console.error(`Invalid container for row ${rowId}`);
+          return;
+        }
+
         // Check if PrinterCapacity module is available
         if (!PrinterCalc.PrinterCapacity || typeof PrinterCalc.PrinterCapacity.visualize !== 'function') {
           console.error('PrinterCapacity visualization not available');
           return;
         }
-    
-        // Create canvas if needed
-        let canvas = container.querySelector('canvas');
-        if (!canvas) {
-          canvas = document.createElement('canvas');
-          canvas.width = container.clientWidth || 280;
-          canvas.height = container.clientHeight || 200;
-          container.appendChild(canvas);
+
+        // Safety check printer and capacity data
+        if (!printer || !capacity) {
+          console.error('Missing printer or capacity data');
+          return;
         }
-    
-        // Draw visualization
-        PrinterCalc.PrinterCapacity.visualize(canvas, capacity, printer);
+
+        // Explicitly show the container
+        if (container.style.display === 'none') {
+          container.style.display = 'block';
+        }
+
+        // Delay visualization to ensure DOM is ready
+        setTimeout(function() {
+          // Visualize the packing
+          if (PrinterCalc.PrinterCapacity && typeof PrinterCalc.PrinterCapacity.visualize === 'function') {
+            PrinterCalc.PrinterCapacity.visualize(container, capacity, printer);
+          }
+        }, 0);
+
       } catch (error) {
         console.error(`Error updating packing visualization for row ${rowId}:`, error);
         
-        // Try to draw error message on canvas
+        // Try to display a simple error message
         try {
-          const canvas = container.querySelector('canvas');
-          if (canvas) {
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-              ctx.font = '12px Arial';
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-              ctx.fillStyle = '#64748b';
-              ctx.fillText('Error visualizing capacity', canvas.width / 2, canvas.height / 2);
-            }
-          }
-        } catch (drawError) {
-          console.error('Error drawing fallback message:', drawError);
+          const errorMsg = document.createElement('div');
+          errorMsg.textContent = 'Error visualizing capacity';
+          errorMsg.style.textAlign = 'center';
+          errorMsg.style.padding = '50px 0';
+          errorMsg.style.color = '#94a3b8';
+          
+          // Clear container first
+          container.innerHTML = '';
+          container.appendChild(errorMsg);
+        } catch (fallbackError) {
+          console.error('Error adding fallback message:', fallbackError);
         }
       }
     },

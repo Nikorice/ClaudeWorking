@@ -305,6 +305,12 @@ function calculateManualResults() {
       '600'
     );
     
+    // Show visualizers only after calculation
+    const visualizersContainer = document.querySelector('#manual-results .packing-visualizers');
+    if (visualizersContainer) {
+      visualizersContainer.style.display = 'flex';
+    }
+    
     // Show results panel
     const resultsPanel = document.getElementById('manual-results');
     if (resultsPanel) {
@@ -374,20 +380,28 @@ function calculateManualResults() {
     const printer400Stats = document.getElementById('manual-printer400-stats');
     if (printer400Stats) {
       if (capacity400.fitsInPrinter) {
-        const totalCost = capacity400.totalObjects * materialResult.costs.total;
+        const objectCount = Number(capacity400.totalObjects);
+        const unitCost = Number(materialResult.costs.total);
+        const totalCost = objectCount * unitCost;
+
+        console.log("DEBUG - Printer 400 calculation:", 
+                    "Objects:", objectCount, 
+                    "Unit cost:", unitCost, 
+                    "Total:", totalCost);
+
         const formattedTotalCost = PrinterCalc.Utils && PrinterCalc.Utils.formatCurrency
           ? PrinterCalc.Utils.formatCurrency(totalCost, currency)
           : `$${totalCost.toFixed(2)}`;
-        
+
         printer400Stats.innerHTML = `
-          <p><span class="printer-highlight">${capacity400.totalObjects}</span> objects</p>
+          <p><span class="printer-highlight">${objectCount}</span> objects</p>
           <p>Arrangement: ${capacity400.arrangement}</p>
           <p>Print Time: ${capacity400.formattedPrintTime}</p>
           <p>Total Cost: ${formattedTotalCost}</p>
         `;
       } else {
         printer400Stats.innerHTML = `
-          <p style="color: var(--danger); font-weight: 600;">Object exceeds printer capacity</p>
+          <p style="color:red;">Objects do not fit</p>
           <p>Check dimensions or change orientation</p>
         `;
       }
@@ -396,21 +410,28 @@ function calculateManualResults() {
     const printer600Stats = document.getElementById('manual-printer600-stats');
     if (printer600Stats) {
       if (capacity600.fitsInPrinter) {
-        const totalCost = capacity600.totalObjects * materialResult.costs.total;
+        const objectCount = Number(capacity600.totalObjects);
+        const unitCost = Number(materialResult.costs.total);
+        const totalCost = objectCount * unitCost;
+
+        console.log("DEBUG - Printer 600 calculation:", 
+                    "Objects:", objectCount, 
+                    "Unit cost:", unitCost, 
+                    "Total:", totalCost);
+
         const formattedTotalCost = PrinterCalc.Utils && PrinterCalc.Utils.formatCurrency
           ? PrinterCalc.Utils.formatCurrency(totalCost, currency)
           : `$${totalCost.toFixed(2)}`;
-        
+
         printer600Stats.innerHTML = `
-          <p><span class="printer-highlight">${capacity600.totalObjects}</span> objects</p>
+          <p><span class="printer-highlight">${objectCount}</span> objects</p>
           <p>Arrangement: ${capacity600.arrangement}</p>
           <p>Print Time: ${capacity600.formattedPrintTime}</p>
           <p>Total Cost: ${formattedTotalCost}</p>
         `;
       } else {
         printer600Stats.innerHTML = `
-          <p style="color: var(--danger); font-weight: 600;">Object exceeds printer capacity</p>
-          <p>Check dimensions or change orientation</p>
+          <p style="color:var(--danger);">Check dimensions or change orientation</p>
         `;
       }
     }
@@ -453,6 +474,30 @@ function calculateManualResults() {
         PrinterCalc.CONSTANTS.PRINTERS['600']
       );
     }
+    
+    // Handle resize events to ensure visualizations remain responsive
+    window.addEventListener('resize', () => {
+      if (PrinterCalc.PrinterCapacity && typeof PrinterCalc.PrinterCapacity.visualize === 'function') {
+        const packing400El = document.getElementById('manual-packing-400');
+        const packing600El = document.getElementById('manual-packing-600');
+ 
+        if (packing400El && capacity400) {
+          PrinterCalc.PrinterCapacity.visualize(
+            packing400El,
+            capacity400,
+            PrinterCalc.CONSTANTS.PRINTERS['400']
+          );
+        }
+ 
+        if (packing600El && capacity600) {
+          PrinterCalc.PrinterCapacity.visualize(
+            packing600El,
+            capacity600,
+            PrinterCalc.CONSTANTS.PRINTERS['600']
+          );
+        }
+      }
+    }, { passive: true });
     
     // Show success notification
     if (PrinterCalc.Notification) {

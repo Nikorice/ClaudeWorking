@@ -213,16 +213,15 @@
           </div>
         </div>
         
-        <div class="packing-visualizers">
-          <div class="packing-visualizer" id="manual-packing-400"></div>
-          <div class="packing-visualizer" id="manual-packing-600"></div>
-        </div>
-        
         <div class="row-actions">
           <button class="btn btn-primary" id="recalculateManual">
             <span class="material-icon">refresh</span> Recalculate
           </button>
         </div>
+      </div>
+      <div class="packing-visualizers">
+        <div class="packing-visualizer" id="manual-packing-400"></div>
+        <div class="packing-visualizer" id="manual-packing-600"></div>
       </div>
     </div>
     
@@ -233,103 +232,105 @@
   <!-- STL Row Template -->
   <template id="stl-row-template">
     <div class="stl-row card">
-      <div class="stl-col">
-        <div class="upload-area">
-          <div class="upload-icon">
-            <span class="material-icon">cloud_upload</span>
-          </div>
-          <p><strong>Click or drag to upload STL</strong></p>
-          <p>Supports binary STL files</p>
-          <p class="upload-limits">Maximum file size: 100MB</p>
-        </div>
-        <input type="file" accept=".stl" style="display: none;">
-        
-        <div class="model-viewer">
-          <div class="model-viewer-loading">
-            <div class="spinner"></div>
-            <div>Loading model...</div>
-            <div class="model-viewer-loading-progress">
-              <div class="model-viewer-loading-bar" style="width: 0%"></div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="orientation-toggle">
-          <button type="button" class="orientation-btn active" data-orientation="flat">
-            <span class="material-icon">crop_landscape</span> Flat
-          </button>
-          <button type="button" class="orientation-btn" data-orientation="vertical">
-            <span class="material-icon">crop_portrait</span> Vertical
-          </button>
-        </div>
-      </div>
-      
-      <div class="stl-col">
-        <div class="results-panel">
-          <h3>
-            <span class="material-icon">analytics</span>
-            Cost Analysis
-          </h3>
-          <div class="error-message"></div>
-          <div class="loading-message">
-            <div class="spinner"></div>
-            Processing STL file...
-          </div>
-          <div class="total-cost">--</div>
-          
-          <div class="stats-grid">
-            <div class="stat-box">
-              <div class="stat-value">--</div>
-              <div class="stat-label">Volume (cm³)</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">--</div>
-              <div class="stat-label">Dimensions (mm)</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value">--</div>
-              <div class="stat-label">Print Time (400/600)</div>
-            </div>
-          </div>
-          
-          <div class="toggle-container">
-            <label class="toggle-switch">
-              <input type="checkbox" class="glaze-toggle" checked>
-              <span class="toggle-slider"></span>
-            </label>
-            <span class="toggle-label">Apply Glaze</span>
-          </div>
-          
-          <div class="progress-container"></div>
-          
-          <h3>
-            <span class="material-icon">view_in_ar</span>
-            Printer Capacity
-          </h3>
-          <div class="printer-cards">
-            <div class="printer-card">
-              <div class="printer-title">Printer 400</div>
-              <div class="printer-stats" id="__printer-400-stats">
-                <p>Calculating...</p>
+      <div class="stl-row-inner">
+        <div class="stl-col stl-viz-col">
+          <div class="model-viewer">
+            <div class="model-viewer-loading">
+              <div class="spinner"></div>
+              <div>Loading model...</div>
+              <div class="model-viewer-loading-progress">
+                <div class="model-viewer-loading-bar" style="width: 0%"></div>
               </div>
             </div>
-            <div class="printer-card">
-              <div class="printer-title">Printer 600</div>
-              <div class="printer-stats" id="__printer-600-stats">
-                <p>Calculating...</p>
-              </div>
-            </div>
+          </div>
+          
+          <div class="orientation-toggle">
+            <button type="button" class="orientation-btn active" data-orientation="flat">
+              <span class="material-icon">crop_landscape</span> Flat
+            </button>
+            <button type="button" class="orientation-btn" data-orientation="vertical">
+              <span class="material-icon">crop_portrait</span> Vertical
+            </button>
           </div>
           
           <div class="packing-visualizers">
             <div class="packing-visualizer" id="__packing-400"></div>
             <div class="packing-visualizer" id="__packing-600"></div>
           </div>
+        </div>
+        
+        <div class="stl-col stl-info-col">
+          <div class="upload-area">
+            <div class="upload-icon">
+              <span class="material-icon">cloud_upload</span>
+            </div>
+            <p><strong>Click or drag to upload STL</strong></p>
+            <p>Supports binary STL files</p>
+            <p class="upload-limits">Maximum file size: 100MB</p>
+          </div>
+          <input type="file" accept=".stl" style="display: none;">
           
-          <div class="row-actions">
-            <button class="btn btn-danger remove-stl-btn">
-              <span class="material-icon">delete</span> Remove
-            </button>
+          <div class="results-panel">
+            <h3>
+              <span class="material-icon">analytics</span>
+              Cost Analysis
+            </h3>
+            <div class="error-message"></div>
+            <div class="loading-message">
+              <div class="spinner"></div>
+              Processing STL file...
+            </div>
+            <div class="total-cost">--</div>
+            
+            <div class="stats-grid">
+              <div class="stat-box">
+                <div class="stat-value">--</div>
+                <div class="stat-label">Volume (cm³)</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value">--</div>
+                <div class="stat-label">Dimensions (mm)</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value">--</div>
+                <div class="stat-label">Print Time (400/600)</div>
+              </div>
+            </div>
+            
+            <div class="toggle-container">
+              <label class="toggle-switch">
+                <input type="checkbox" class="glaze-toggle" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label">Apply Glaze</span>
+            </div>
+            
+            <div class="progress-container"></div>
+            
+            <h3>
+              <span class="material-icon">view_in_ar</span>
+              Printer Capacity
+            </h3>
+            <div class="printer-cards">
+              <div class="printer-card">
+                <div class="printer-title">Printer 400</div>
+                <div class="printer-stats" id="__printer-400-stats">
+                  <p>Calculating...</p>
+                </div>
+              </div>
+              <div class="printer-card">
+                <div class="printer-title">Printer 600</div>
+                <div class="printer-stats" id="__printer-600-stats">
+                  <p>Calculating...</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row-actions">
+              <button class="btn btn-danger remove-stl-btn">
+                <span class="material-icon">delete</span> Remove
+              </button>
+            </div>
           </div>
         </div>
       </div>
