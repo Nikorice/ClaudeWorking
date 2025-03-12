@@ -921,23 +921,15 @@
      */
     updatePrinterStats: function (element, capacity, currency) {
       if (!element || !capacity) return;
-    
       try {
         if (capacity.fitsInPrinter) {
-          // Get row ID from element ID
           const rowId = element.id.split('-')[0];
-    
-          // Get the calculated material cost directly
           const rowData = this.rows[rowId];
-    
           let singleObjectCost = 0;
-    
-          if (rowData && rowData.materialResult && rowData.materialResult.costs && 
+          if (rowData && rowData.materialResult && rowData.materialResult.costs &&
               !isNaN(rowData.materialResult.costs.total)) {
-            // Use the already calculated material cost
             singleObjectCost = rowData.materialResult.costs.total;
           } else if (rowData && rowData.stlData && rowData.stlData.volumeCm3) {
-            // Attempt to recalculate if we have the volumeCm3
             try {
               if (PrinterCalc.MaterialCalculator && typeof PrinterCalc.MaterialCalculator.calculate === 'function') {
                 const materialResult = PrinterCalc.MaterialCalculator.calculate(
@@ -953,42 +945,31 @@
               console.error('Error recalculating cost:', e);
             }
           }
-    
-          // Calculate total cost for all objects
           const batchCost = capacity.totalObjects * singleObjectCost;
-    
-          // Format currency with fallback
           let formattedBatchCost;
           if (PrinterCalc.Utils && typeof PrinterCalc.Utils.formatCurrency === 'function') {
             formattedBatchCost = PrinterCalc.Utils.formatCurrency(batchCost, currency);
           } else {
-            // Simple fallback
-            const symbol = (PrinterCalc.CONSTANTS && PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS) 
-              ? (PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS[currency] || '$') 
+            const symbol = (PrinterCalc.CONSTANTS && PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS)
+              ? (PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS[currency] || '$')
               : '$';
             formattedBatchCost = `${symbol}${batchCost.toFixed(2)}`;
           }
-    
-          // Build HTML content
           element.innerHTML = `
-              <p><span class="printer-highlight">${capacity.totalObjects}</span> objects</p>
-              <p>Arrangement: ${capacity.arrangement}</p>
-              <p>Print Time: ${capacity.formattedPrintTime || '--'}</p>
-              <p>Total Cost: ${formattedBatchCost}</p>
-            `;
+            <div>${capacity.totalObjects} objects</div>
+            <div>Arrangement: ${capacity.arrangement}</div>
+            <div>Print Time: ${capacity.formattedPrintTime || '--'}</div>
+            <div>Total Cost: ${formattedBatchCost}</div>
+          `;
         } else {
-          // Object doesn't fit
           element.innerHTML = `
-              <p style="color: var(--danger); font-weight: 600;">Object exceeds printer capacity</p>
-              <p>Check dimensions or change orientation</p>
-            `;
+            <div style="color: red;">Object exceeds printer capacity</div>
+          `;
         }
       } catch (error) {
         console.error('Error updating printer stats:', error);
-        // Fallback for error
         element.innerHTML = `
-          <p style="color: var(--danger);">Error calculating capacity</p>
-          <p>Please try again or reload the page</p>
+          <div style="color: red;">Error calculating capacity</div>
         `;
       }
     },
