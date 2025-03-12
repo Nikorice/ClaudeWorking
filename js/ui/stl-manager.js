@@ -1009,39 +1009,38 @@
         console.error(`Missing container for row ${rowId}`);
         return;
       }
-
+    
       try {
-        // Make sure container exists and is an element
-        if (!(container instanceof Element)) {
-          console.error(`Invalid container for row ${rowId}`);
+        // Clear previous contents and any existing canvases
+        container.innerHTML = '';
+        
+        // Check if capacity data is valid
+        if (!capacity || !capacity.fitsInPrinter) {
+          const errorMsg = document.createElement('div');
+          errorMsg.textContent = 'Object exceeds printer capacity';
+          errorMsg.style.textAlign = 'center';
+          errorMsg.style.padding = '50px 0';
+          errorMsg.style.color = '#ef4444';
+          container.appendChild(errorMsg);
           return;
         }
-
-        // Check if PrinterCapacity module is available
-        if (!PrinterCalc.PrinterCapacity || typeof PrinterCalc.PrinterCapacity.visualize !== 'function') {
-          console.error('PrinterCapacity visualization not available');
-          return;
-        }
-
-        // Safety check printer and capacity data
-        if (!printer || !capacity) {
-          console.error('Missing printer or capacity data');
-          return;
-        }
-
+    
+        // Create canvas for 2D visualization (fallback method)
+        const canvas = document.createElement('canvas');
+        canvas.width = container.clientWidth || 280;
+        canvas.height = container.clientHeight || 200;
+        container.appendChild(canvas);
+        
         // Explicitly show the container
         if (container.style.display === 'none') {
           container.style.display = 'block';
         }
-
-        // Delay visualization to ensure DOM is ready
-        setTimeout(function() {
-          // Visualize the packing
-          if (PrinterCalc.PrinterCapacity && typeof PrinterCalc.PrinterCapacity.visualize === 'function') {
-            PrinterCalc.PrinterCapacity.visualize(container, capacity, printer);
-          }
-        }, 0);
-
+    
+        // Use the 2D visualization method
+        if (PrinterCalc.PrinterCapacity && typeof PrinterCalc.PrinterCapacity.visualize === 'function') {
+          PrinterCalc.PrinterCapacity.visualize(canvas, capacity, printer);
+        }
+    
       } catch (error) {
         console.error(`Error updating packing visualization for row ${rowId}:`, error);
         
@@ -1061,6 +1060,120 @@
         }
       }
     },
+    
+    // Helper methods for 3D visualization
+    init3DVisualizer: function(container) {
+      const width = container.clientWidth || 280;
+      const height = container.clientHeight || 200;
+      
+      // Determine if we're in dark mode
+      const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+      
+      // Create scene
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(isDarkMode ? 0x1e293b : 0xf8fafc);
+      
+      // Create camera
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 2000);
+      camera.position.set(400, 400, 400);
+      
+      // Create renderer
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+      container.appendChild(renderer.domElement);
+      
+      // Add lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+      
+      return { scene, camera, renderer };
+    },
+    
+    addPrinterVolume: function(scene, printer) {
+      const { width, depth, height } = printer.dimensions;
+      
+      // Create wireframe box for printer volume
+      const geometry = new THREE.BoxGeometry(width, height, depth);
+      const material = new THREE.MeshBasicMaterial({ 
+        color: 0x3b82f6, 
+        wireframe: true,
+        opacity: 0.5,
+        transparent: true
+      });
+      
+      const printerBox = new THREE.Mesh(geometry, material);
+      
+      // Position box with bottom at y=0 and centered in xz plane
+      printerBox.position.set(width/2, height/2, depth/2);
+      
+      scene.add(printerBox);
+      
+      // Add grid helper at bottom
+      const gridHelper = new THREE.GridHelper(Math.max(width, depth) * 1.2, 10, 0x555555, 0x333333);
+      gridHelper.rotation.x = Math.PI / 2;
+      gridHelper.position.y = 0.1; // slightly above bottom to avoid z-fighting
+      scene.add(gridHelper);
+    },
+    
+    addPackedObjects: function(scene, capacityData) {
+      const { positions, objectDimensions } = capacityData;
+      
+      if (!positions || !positions.length) return;
+      
+      const geometry = new THREE.BoxGeometry(
+        objectDimensions.width, 
+        objectDimensions.height, 
+        objectDimensions.depth
+      );
+      
+      const material = new THREE.MeshPhongMaterial({ 
+        color: 0x4ade80,
+        opacity: 0.8,
+        transparent: true
+      });
+      
+      positions.forEach(pos => {
+        const mesh = new THREE.Mesh(geometry, material);
+        
+        // Position the mesh
+        mesh.position.set(
+          pos.x + objectDimensions.width/2, 
+          pos.z + objectDimensions.height/2, 
+          pos.y + objectDimensions.depth/2
+        );
+        
+        scene.add(mesh);
+      });
+    },
+    
+    fitCameraToScene: function(camera, scene) {
+      // Create a bounding box for all objects in the scene
+      const box = new THREE.Box3().setFromObject(scene);
+      
+      // Get the center and size of the box
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      
+      // Calculate the distance needed to view the entire box
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fov = camera.fov * (Math.PI / 180);
+      let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+      
+      // Add some padding
+      cameraZ *= 1.5;
+      
+      // Position the camera
+      camera.position.set(center.x + cameraZ, center.y + cameraZ, center.z + cameraZ);
+      camera.lookAt(center);
+    },
 
     /**
      * Remove an STL row
@@ -1070,16 +1183,22 @@
       // Get row element
       const row = document.getElementById(rowId);
       if (!row) return;
-
+    
       try {
         // Clean up viewer
         if (this.rows[rowId] && this.rows[rowId].viewerId) {
           PrinterCalc.ModelViewer.dispose(this.rows[rowId].viewerId);
         }
-
+    
+        // Clean up any visualizations
+        const visualizers = row.querySelectorAll('.packing-visualizer');
+        visualizers.forEach(vis => {
+          vis.innerHTML = '';
+        });
+    
         // Remove row element
         row.remove();
-
+    
         // Remove from rows object
         delete this.rows[rowId];
       } catch (error) {

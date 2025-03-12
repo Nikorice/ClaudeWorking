@@ -47,6 +47,15 @@
       switchToTab: function(tabId) {
         const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
         if (tabBtn) {
+          // Clean up any 3D visualizations before switching tabs
+          if (PrinterCalc.STLManager) {
+            // Clear any existing canvas elements
+            const visualizers = document.querySelectorAll('.packing-visualizer');
+            visualizers.forEach(vis => {
+              vis.innerHTML = '';
+            });
+          }
+          
           tabBtn.click();
         }
       },

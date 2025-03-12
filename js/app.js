@@ -436,44 +436,28 @@ function calculateManualResults() {
       }
     }
     
-    // Update packing visualizations
-    const packing400El = document.getElementById('manual-packing-400');
-    if (packing400El && PrinterCalc.PrinterCapacity && PrinterCalc.PrinterCapacity.visualize) {
-      // Create canvas if needed
-      let canvas = packing400El.querySelector('canvas');
-      if (!canvas) {
-        canvas = document.createElement('canvas');
-        canvas.width = packing400El.clientWidth || 280;
-        canvas.height = packing400El.clientHeight || 200;
-        packing400El.appendChild(canvas);
-      }
-      
-      // Draw visualization
-      PrinterCalc.PrinterCapacity.visualize(
-        canvas,
-        capacity400,
-        PrinterCalc.CONSTANTS.PRINTERS['400']
-      );
-    }
-    
-    const packing600El = document.getElementById('manual-packing-600');
-    if (packing600El && PrinterCalc.PrinterCapacity && PrinterCalc.PrinterCapacity.visualize) {
-      // Create canvas if needed
-      let canvas = packing600El.querySelector('canvas');
-      if (!canvas) {
-        canvas = document.createElement('canvas');
-        canvas.width = packing600El.clientWidth || 280;
-        canvas.height = packing600El.clientHeight || 200;
-        packing600El.appendChild(canvas);
-      }
-      
-      // Draw visualization
-      PrinterCalc.PrinterCapacity.visualize(
-        canvas,
-        capacity600,
-        PrinterCalc.CONSTANTS.PRINTERS['600']
-      );
-    }
+   // Update packing visualizations
+const packing400El = document.getElementById('manual-packing-400');
+if (packing400El && PrinterCalc.STLManager && PrinterCalc.STLManager.updatePackingVisualization) {
+  // Use the STLManager's visualization method
+  PrinterCalc.STLManager.updatePackingVisualization(
+    'manual',
+    packing400El,
+    capacity400,
+    PrinterCalc.CONSTANTS.PRINTERS['400']
+  );
+}
+
+const packing600El = document.getElementById('manual-packing-600');
+if (packing600El && PrinterCalc.STLManager && PrinterCalc.STLManager.updatePackingVisualization) {
+  // Use the STLManager's visualization method
+  PrinterCalc.STLManager.updatePackingVisualization(
+    'manual',
+    packing600El,
+    capacity600,
+    PrinterCalc.CONSTANTS.PRINTERS['600']
+  );
+}
     
     // Handle resize events to ensure visualizations remain responsive
     window.addEventListener('resize', () => {
