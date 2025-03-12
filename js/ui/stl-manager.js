@@ -8,6 +8,22 @@
   // Make sure the namespace exists
   window.PrinterCalc = window.PrinterCalc || {};
 
+  // Helper function to check THREE.js components
+function checkThreeComponents() {
+  const missing = [];
+  
+  if (typeof THREE === 'undefined') missing.push('THREE main library');
+  else {
+    if (typeof THREE.STLLoader === 'undefined') missing.push('STLLoader');
+    if (typeof THREE.OrbitControls === 'undefined') missing.push('OrbitControls');
+  }
+  
+  return {
+    ready: missing.length === 0,
+    missing: missing
+  };
+}
+
   // Create an STL manager module
   PrinterCalc.STLManager = {
     // Store STL rows by ID
@@ -277,32 +293,24 @@
           // Create unique viewer ID
           const viewerId = rowId + '-viewer';
 
-          // First check: is THREE loaded alongside all required components?
-          const isThreeReady = typeof THREE !== 'undefined' &&
-            typeof THREE.STLLoader !== 'undefined' &&
-            typeof THREE.OrbitControls !== 'undefined';
+         // Check if THREE.js and all components are ready
+const threeStatus = isThreeReady();
+if (!threeStatus.ready) {
+  console.error('THREE.js components not ready:', threeStatus.missing.join(', '));
 
-          if (!isThreeReady) {
-            console.error('THREE.js or required components not loaded');
+  if (errorMessage) {
+    errorMessage.textContent = `3D libraries not fully loaded (missing: ${threeStatus.missing.join(', ')}). Continuing without 3D visualization.`;
+    errorMessage.style.display = 'block';
+  }
+  
+  // Always clear loading indicators
+  if (modelViewerLoading) modelViewerLoading.style.display = 'none';
+  if (loadingMessage) loadingMessage.style.display = 'none';
 
-            // Show specific error message for better debugging
-            let missingComponents = [];
-            if (typeof THREE === 'undefined') missingComponents.push('THREE main library');
-            else {
-              if (typeof THREE.STLLoader === 'undefined') missingComponents.push('STLLoader');
-              if (typeof THREE.OrbitControls === 'undefined') missingComponents.push('OrbitControls');
-            }
-
-            if (errorMessage) {
-              errorMessage.textContent = `3D libraries not fully loaded (missing: ${missingComponents.join(', ')}). Please reload the page.`;
-              errorMessage.style.display = 'block';
-            }
-            if (loadingMessage) loadingMessage.style.display = 'none';
-
-            // Continue with calculations, just without 3D visualization
-            this.processWithout3D(rowId, file);
-            return;
-          }
+  // Continue with calculations, just without 3D visualization
+  this.processWithout3D(rowId, file);
+  return;
+}
 
           // Initialize model viewer
           if (PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.init === 'function') {
@@ -392,24 +400,32 @@
         };
 
         // Load model into viewer
-        try {
-          if (PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.loadSTL === 'function') {
-            await PrinterCalc.ModelViewer.loadSTL(
-              this.rows[rowId].viewerId,
-              file
-            );
+try {
+  if (PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.loadSTL === 'function') {
+    await PrinterCalc.ModelViewer.loadSTL(
+      this.rows[rowId].viewerId,
+      file
+    );
 
-            // Apply current orientation
-            if (PrinterCalc.ModelViewer.changeOrientation) {
-              PrinterCalc.ModelViewer.changeOrientation(
-                this.rows[rowId].viewerId,
-                this.rows[rowId].orientation
-              );
-            }
-          }
-        } catch (viewerError) {
-          console.error('Error displaying model:', viewerError);
-        }
+    // Apply current orientation
+    if (PrinterCalc.ModelViewer.changeOrientation) {
+      PrinterCalc.ModelViewer.changeOrientation(
+        this.rows[rowId].viewerId,
+        this.rows[rowId].orientation
+      );
+    }
+  }
+} catch (viewerError) {
+  console.error('Error displaying model:', viewerError);
+  
+  // Make sure loading indicators are cleared even on error
+  if (modelViewerLoading) modelViewerLoading.style.display = 'none';
+  if (loadingMessage) loadingMessage.style.display = 'none';
+  
+  // Continue with calculations without 3D
+  this.processWithout3D(rowId, file);
+  return;
+}
 
         // Hide loading indicators
         if (modelViewerLoading) modelViewerLoading.style.display = 'none';
@@ -614,14 +630,30 @@
      */
     updateResults: function (rowId) {
       console.log('Updating results for row:', rowId);
-
+    
+      // Always try to clear loading indicators first to prevent UI from getting stuck
+      const element = document.getElementById(rowId);
+      if (element) {
+        const loadingElem = element.querySelector('.loading-message');
+        if (loadingElem) {
+          setTimeout(() => {
+            loadingElem.style.display = 'none';
+          }, 100);
+        }
+        
+        const spinnerElem = element.querySelector('.model-viewer-loading');
+        if (spinnerElem) {
+          spinnerElem.style.display = 'none';
+        }
+      }
+    
       // Validate all dependencies are available
       if (!PrinterCalc.MaterialCalculator || typeof PrinterCalc.MaterialCalculator.calculate !== 'function') {
         console.error('MaterialCalculator not available for updating results');
         this.showErrorInRow(rowId, 'Calculation module not available. Please reload the page.');
         return;
       }
-
+    
       const rowData = this.rows[rowId];
       if (!rowData) {
         console.error('Row data not found for ID:', rowId);
@@ -1009,10 +1041,21 @@
         console.error(`Missing container for row ${rowId}`);
         return;
       }
-    
+        
       try {
         // Clear previous contents and any existing canvases
         container.innerHTML = '';
+        
+        // Add safety checks for capacity and printer
+        if (!capacity) {
+          console.error(`Missing capacity data for row ${rowId}`);
+          return;
+        }
+        
+        if (!printer) {
+          console.error(`Missing printer data for row ${rowId}`);
+          return;
+        }
         
         // Check if capacity data is valid
         if (!capacity || !capacity.fitsInPrinter) {

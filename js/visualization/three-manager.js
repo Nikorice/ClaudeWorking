@@ -142,8 +142,16 @@
         const animate = () => {
           try {
             animationFrameId = requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
+            
+            // Add null check before updating controls
+            if (controls && typeof controls.update === 'function') {
+              controls.update();
+            }
+            
+            // Add null check before rendering
+            if (renderer && scene && camera) {
+              renderer.render(scene, camera);
+            }
           } catch (animateError) {
             console.error('Error in animation loop:', animateError);
             cancelAnimationFrame(animationFrameId);

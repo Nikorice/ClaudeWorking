@@ -22,9 +22,11 @@
         if (!container) return null;
         
         // Generate a unique ID for this viewer
-const viewerId = container.id || (PrinterCalc.Utils && typeof PrinterCalc.Utils.generateId === 'function') 
-? PrinterCalc.Utils.generateId() 
-: ('viewer-' + Math.random().toString(36).substring(2, 15));
+// Fix the logic with proper parentheses:
+const viewerId = container.id || 
+  ((PrinterCalc.Utils && typeof PrinterCalc.Utils.generateId === 'function') 
+    ? PrinterCalc.Utils.generateId() 
+    : ('viewer-' + Math.random().toString(36).substring(2, 15)));
         
         // Initialize Three.js viewer
         const threeContext = PrinterCalc.ThreeManager.initViewer(container);
