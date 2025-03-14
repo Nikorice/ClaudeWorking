@@ -294,7 +294,7 @@ function checkThreeComponents() {
           const viewerId = rowId + '-viewer';
 
          // Check if THREE.js and all components are ready
-const threeStatus = isThreeReady();
+const threeStatus = checkThreeComponents();
 if (!threeStatus.ready) {
   console.error('THREE.js components not ready:', threeStatus.missing.join(', '));
 
