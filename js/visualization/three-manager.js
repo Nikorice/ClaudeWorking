@@ -267,6 +267,7 @@
 
         // Create mesh
         const mesh = new THREE.Mesh(geometry, material);
+        if (!mesh.userData) mesh.userData = {};
         mesh.userData.isModel = true;
 
         // Apply orientation
@@ -277,6 +278,11 @@
 
         // Center camera on model
         this.fitCameraToObject(context, mesh);
+        
+        // Mark mesh as model for later retrieval
+        if (PrinterCalc.ModelViewer && PrinterCalc.ModelViewer.markAsModel) {
+          PrinterCalc.ModelViewer.markAsModel(mesh);
+        }
       } catch (error) {
         console.error('Error loading STL model:', error);
       }

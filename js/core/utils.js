@@ -3,6 +3,8 @@
  * 
  * This module provides general utility functions used throughout the application.
  */
+// Add at the very top of js/core/utils.js
+console.log("Utils.js loading attempt...");
 
 // Extend the PrinterCalc namespace
 (function() {
@@ -308,4 +310,5 @@
           container.appendChild(progressItem);
         });
       }
-  }})
+    }
+  })();

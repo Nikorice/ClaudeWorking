@@ -9,20 +9,20 @@
   window.PrinterCalc = window.PrinterCalc || {};
 
   // Helper function to check THREE.js components
-function checkThreeComponents() {
-  const missing = [];
-  
-  if (typeof THREE === 'undefined') missing.push('THREE main library');
-  else {
-    if (typeof THREE.STLLoader === 'undefined') missing.push('STLLoader');
-    if (typeof THREE.OrbitControls === 'undefined') missing.push('OrbitControls');
+  function checkThreeComponents() {
+    const missing = [];
+
+    if (typeof THREE === 'undefined') missing.push('THREE main library');
+    else {
+      if (typeof THREE.STLLoader === 'undefined') missing.push('STLLoader');
+      if (typeof THREE.OrbitControls === 'undefined') missing.push('OrbitControls');
+    }
+
+    return {
+      ready: missing.length === 0,
+      missing: missing
+    };
   }
-  
-  return {
-    ready: missing.length === 0,
-    missing: missing
-  };
-}
 
   // Create an STL manager module
   PrinterCalc.STLManager = {
@@ -55,6 +55,9 @@ function checkThreeComponents() {
      * Create a new STL row
      * @returns {string} Row ID
      */
+    /**
+ * Modified createSTLRow function to hide visualization elements initially
+ */
     createSTLRow: function () {
       try {
         // Local fallback function for generating IDs if Utils.generateId is not available
@@ -96,6 +99,17 @@ function checkThreeComponents() {
             el.id = `${rowId}-${el.id.substring(2)}`;
           }
         });
+
+        // Hide visualization elements initially
+        const modelViewer = rowElement.querySelector('.model-viewer');
+        const orientationToggle = rowElement.querySelector('.orientation-toggle');
+        const packingVisualizers = rowElement.querySelector('.packing-visualizers');
+        const resultsPanel = rowElement.querySelector('.results-panel');
+
+        if (modelViewer) modelViewer.style.display = 'none';
+        if (orientationToggle) orientationToggle.style.display = 'none';
+        if (packingVisualizers) packingVisualizers.style.display = 'none';
+        if (resultsPanel) resultsPanel.style.display = 'none';
 
         // Add to container
         container.appendChild(rowElement);
@@ -215,6 +229,10 @@ function checkThreeComponents() {
      * @param {string} rowId - Row ID
      * @param {File} file - Uploaded STL file
      */
+
+    /**
+     * Modified handleFileUpload function to properly show visualization elements
+     */
     handleFileUpload: async function (rowId, file) {
       console.log('Handling file upload for row:', rowId);
 
@@ -261,6 +279,7 @@ function checkThreeComponents() {
         const loadingMessage = row.querySelector('.loading-message');
         const errorMessage = row.querySelector('.error-message');
         const orientationToggle = row.querySelector('.orientation-toggle');
+        const packingVisualizers = row.querySelector('.packing-visualizers');
 
         // Update UI to show loading state
         if (uploadArea) uploadArea.style.display = 'none';
@@ -293,24 +312,24 @@ function checkThreeComponents() {
           // Create unique viewer ID
           const viewerId = rowId + '-viewer';
 
-         // Check if THREE.js and all components are ready
-const threeStatus = checkThreeComponents();
-if (!threeStatus.ready) {
-  console.error('THREE.js components not ready:', threeStatus.missing.join(', '));
+          // Check if THREE.js and all components are ready
+          const threeStatus = checkThreeComponents();
+          if (!threeStatus.ready) {
+            console.error('THREE.js components not ready:', threeStatus.missing.join(', '));
 
-  if (errorMessage) {
-    errorMessage.textContent = `3D libraries not fully loaded (missing: ${threeStatus.missing.join(', ')}). Continuing without 3D visualization.`;
-    errorMessage.style.display = 'block';
-  }
-  
-  // Always clear loading indicators
-  if (modelViewerLoading) modelViewerLoading.style.display = 'none';
-  if (loadingMessage) loadingMessage.style.display = 'none';
+            if (errorMessage) {
+              errorMessage.textContent = `3D libraries not fully loaded (missing: ${threeStatus.missing.join(', ')}). Continuing without 3D visualization.`;
+              errorMessage.style.display = 'block';
+            }
 
-  // Continue with calculations, just without 3D visualization
-  this.processWithout3D(rowId, file);
-  return;
-}
+            // Always clear loading indicators
+            if (modelViewerLoading) modelViewerLoading.style.display = 'none';
+            if (loadingMessage) loadingMessage.style.display = 'none';
+
+            // Continue with calculations, just without 3D visualization
+            this.processWithout3D(rowId, file);
+            return;
+          }
 
           // Initialize model viewer
           if (PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.init === 'function') {
@@ -400,37 +419,43 @@ if (!threeStatus.ready) {
         };
 
         // Load model into viewer
-try {
-  if (PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.loadSTL === 'function') {
-    await PrinterCalc.ModelViewer.loadSTL(
-      this.rows[rowId].viewerId,
-      file
-    );
+        try {
+          if (PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.loadSTL === 'function') {
+            await PrinterCalc.ModelViewer.loadSTL(
+              this.rows[rowId].viewerId,
+              file
+            );
 
-    // Apply current orientation
-    if (PrinterCalc.ModelViewer.changeOrientation) {
-      PrinterCalc.ModelViewer.changeOrientation(
-        this.rows[rowId].viewerId,
-        this.rows[rowId].orientation
-      );
-    }
-  }
-} catch (viewerError) {
-  console.error('Error displaying model:', viewerError);
-  
-  // Make sure loading indicators are cleared even on error
-  if (modelViewerLoading) modelViewerLoading.style.display = 'none';
-  if (loadingMessage) loadingMessage.style.display = 'none';
-  
-  // Continue with calculations without 3D
-  this.processWithout3D(rowId, file);
-  return;
-}
+            // Apply current orientation
+            if (PrinterCalc.ModelViewer.changeOrientation) {
+              PrinterCalc.ModelViewer.changeOrientation(
+                this.rows[rowId].viewerId,
+                this.rows[rowId].orientation
+              );
+            }
+          }
+        } catch (viewerError) {
+          console.error('Error displaying model:', viewerError);
+
+          // Make sure loading indicators are cleared even on error
+          if (modelViewerLoading) modelViewerLoading.style.display = 'none';
+          if (loadingMessage) loadingMessage.style.display = 'none';
+
+          // Continue with calculations without 3D
+          this.processWithout3D(rowId, file);
+          return;
+        }
 
         // Hide loading indicators
         if (modelViewerLoading) modelViewerLoading.style.display = 'none';
         if (loadingMessage) loadingMessage.style.display = 'none';
+
+        // Show the orientation toggle and packing visualizers now that the STL is loaded
         if (orientationToggle) orientationToggle.style.display = 'flex';
+        if (packingVisualizers) packingVisualizers.style.display = 'flex';
+
+        // Add class to show visualization column
+        row.classList.add('file-uploaded');
 
         // Update results
         this.updateResults(rowId);
@@ -471,22 +496,22 @@ try {
      * @param {string} rowId - Row ID
      * @param {File} file - STL file
      */
-    processWithout3D: async function(rowId, file) {
+    processWithout3D: async function (rowId, file) {
       try {
         // Get elements
         const row = document.getElementById(rowId);
         if (!row) return;
-        
+
         const uploadArea = row.querySelector('.upload-area');
         const resultsPanel = row.querySelector('.results-panel');
         const loadingMessage = row.querySelector('.loading-message');
         const errorMessage = row.querySelector('.error-message');
-        
+
         // Update UI states
         if (uploadArea) uploadArea.style.display = 'none';
         if (resultsPanel) resultsPanel.style.display = 'block';
         if (loadingMessage) loadingMessage.style.display = 'flex';
-        
+
         // Process STL file to get volume and dimensions
         let stlData;
         try {
@@ -494,11 +519,11 @@ try {
           if (!PrinterCalc.STLProcessor || typeof PrinterCalc.STLProcessor.processFile !== 'function') {
             throw new Error('STL processor not available. Please reload the page.');
           }
-          
+
           stlData = await PrinterCalc.STLProcessor.processFile(file);
         } catch (error) {
           console.error('Error processing STL file:', error);
-          
+
           if (errorMessage) {
             errorMessage.textContent = error.message || 'Error processing STL file';
             errorMessage.style.display = 'block';
@@ -506,12 +531,12 @@ try {
           if (loadingMessage) loadingMessage.style.display = 'none';
           return;
         }
-        
+
         // Validate stlData
-        if (!stlData || typeof stlData.volumeCm3 !== 'number' || 
-            !stlData.dimensions || typeof stlData.dimensions !== 'object') {
+        if (!stlData || typeof stlData.volumeCm3 !== 'number' ||
+          !stlData.dimensions || typeof stlData.dimensions !== 'object') {
           console.error('Invalid STL data:', stlData);
-          
+
           if (errorMessage) {
             errorMessage.textContent = 'Invalid data received from STL processor';
             errorMessage.style.display = 'block';
@@ -519,18 +544,18 @@ try {
           if (loadingMessage) loadingMessage.style.display = 'none';
           return;
         }
-        
+
         // Store STL data
         this.rows[rowId].stlData = {
           file,
           volumeCm3: stlData.volumeCm3 || 0,
-          dimensions: stlData.dimensions || {width: 0, depth: 0, height: 0},
+          dimensions: stlData.dimensions || { width: 0, depth: 0, height: 0 },
           triangleCount: stlData.triangleCount || 0
         };
-        
+
         // Hide loading indicators
         if (loadingMessage) loadingMessage.style.display = 'none';
-        
+
         // Show notification
         if (PrinterCalc.Notification && typeof PrinterCalc.Notification.success === 'function') {
           PrinterCalc.Notification.success(
@@ -538,12 +563,12 @@ try {
             `Model loaded successfully without 3D preview (${stlData.triangleCount.toLocaleString()} triangles)`
           );
         }
-        
+
         // Update results
         this.updateResults(rowId);
       } catch (error) {
         console.error('Error in processWithout3D:', error);
-        
+
         // Show error in UI
         const row = document.getElementById(rowId);
         if (row) {
@@ -552,7 +577,7 @@ try {
             errorMessage.textContent = 'Error processing file without 3D preview: ' + (error.message || 'Unknown error');
             errorMessage.style.display = 'block';
           }
-          
+
           const loadingMessage = row.querySelector('.loading-message');
           if (loadingMessage) loadingMessage.style.display = 'none';
         }
@@ -630,7 +655,7 @@ try {
      */
     updateResults: function (rowId) {
       console.log('Updating results for row:', rowId);
-    
+
       // Always try to clear loading indicators first to prevent UI from getting stuck
       const element = document.getElementById(rowId);
       if (element) {
@@ -640,20 +665,20 @@ try {
             loadingElem.style.display = 'none';
           }, 100);
         }
-        
+
         const spinnerElem = element.querySelector('.model-viewer-loading');
         if (spinnerElem) {
           spinnerElem.style.display = 'none';
         }
       }
-    
+
       // Validate all dependencies are available
       if (!PrinterCalc.MaterialCalculator || typeof PrinterCalc.MaterialCalculator.calculate !== 'function') {
         console.error('MaterialCalculator not available for updating results');
         this.showErrorInRow(rowId, 'Calculation module not available. Please reload the page.');
         return;
       }
-    
+
       const rowData = this.rows[rowId];
       if (!rowData) {
         console.error('Row data not found for ID:', rowId);
@@ -969,64 +994,64 @@ try {
      * @param {string} currency - Currency code
      */
     updatePrinterStats: function (element, capacity, currency) {
-    try {
-      const rowId = element.closest('.stl-row').id;
-      const rowData = this.rows[rowId];
- 
-      console.log('Updating printer stats, row data:', rowId, rowData);
- 
-      let singleObjectCost = 0;
- 
-      if (rowData && rowData.materialResult && rowData.materialResult.costs &&
+      try {
+        const rowId = element.closest('.stl-row').id;
+        const rowData = this.rows[rowId];
+
+        console.log('Updating printer stats, row data:', rowId, rowData);
+
+        let singleObjectCost = 0;
+
+        if (rowData && rowData.materialResult && rowData.materialResult.costs &&
           !isNaN(rowData.materialResult.costs.total)) {
-        singleObjectCost = Number(rowData.materialResult.costs.total);
-      } else if (rowData && rowData.stlData && rowData.stlData.volumeCm3) {
-        if (PrinterCalc.MaterialCalculator && typeof PrinterCalc.MaterialCalculator.calculate === 'function') {
-          const materialResult = PrinterCalc.MaterialCalculator.calculate(
-            rowData.stlData.volumeCm3,
-            rowData.applyGlaze !== false,
-            currency || 'USD'
-          );
-          singleObjectCost = Number(materialResult.costs.total);
-          console.log('Recalculated cost:', singleObjectCost);
-        } else {
-          console.error('MaterialCalculator not available for recalculation');
+          singleObjectCost = Number(rowData.materialResult.costs.total);
+        } else if (rowData && rowData.stlData && rowData.stlData.volumeCm3) {
+          if (PrinterCalc.MaterialCalculator && typeof PrinterCalc.MaterialCalculator.calculate === 'function') {
+            const materialResult = PrinterCalc.MaterialCalculator.calculate(
+              rowData.stlData.volumeCm3,
+              rowData.applyGlaze !== false,
+              currency || 'USD'
+            );
+            singleObjectCost = Number(materialResult.costs.total);
+            console.log('Recalculated cost:', singleObjectCost);
+          } else {
+            console.error('MaterialCalculator not available for recalculation');
+          }
         }
-      }
- 
-      const objectCount = Number(capacity.totalObjects);
-      const batchCost = objectCount * singleObjectCost;
- 
-      console.log('STL Manager batch calculation:', objectCount, '*', singleObjectCost, '=', batchCost);
- 
-      let formattedBatchCost;
-      if (PrinterCalc.Utils && typeof PrinterCalc.Utils.formatCurrency === 'function') {
-        formattedBatchCost = PrinterCalc.Utils.formatCurrency(batchCost, currency);
-      } else {
-        const symbol = (PrinterCalc.CONSTANTS && PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS) ?
-          (PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS[currency] || '$') : '$';
-        formattedBatchCost = `${symbol}${batchCost.toFixed(2)}`;
-      }
- 
-      if (capacity.fitsInPrinter) {
-        element.innerHTML = `
+
+        const objectCount = Number(capacity.totalObjects);
+        const batchCost = objectCount * singleObjectCost;
+
+        console.log('STL Manager batch calculation:', objectCount, '*', singleObjectCost, '=', batchCost);
+
+        let formattedBatchCost;
+        if (PrinterCalc.Utils && typeof PrinterCalc.Utils.formatCurrency === 'function') {
+          formattedBatchCost = PrinterCalc.Utils.formatCurrency(batchCost, currency);
+        } else {
+          const symbol = (PrinterCalc.CONSTANTS && PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS) ?
+            (PrinterCalc.CONSTANTS.CURRENCY_SYMBOLS[currency] || '$') : '$';
+          formattedBatchCost = `${symbol}${batchCost.toFixed(2)}`;
+        }
+
+        if (capacity.fitsInPrinter) {
+          element.innerHTML = `
           <p><span class="printer-highlight">${capacity.totalObjects}</span> objects</p>
           <p>Arrangement: ${capacity.arrangement}</p>
           <p>Print Time: ${capacity.formattedPrintTime}</p>
           <p>Total Cost: ${formattedBatchCost}</p>
         `;
-      } else {
-        element.innerHTML = `
+        } else {
+          element.innerHTML = `
           <p style="color: var(--danger); font-weight: 600;">Object exceeds printer capacity</p>
           <p>Check dimensions or change orientation</p>
         `;
-      }
-    } catch (error) {
-      console.error('Error updating printer stats:', error, error.stack);
-      element.innerHTML = `
+        }
+      } catch (error) {
+        console.error('Error updating printer stats:', error, error.stack);
+        element.innerHTML = `
         <p style="color: var(--danger); font-weight: 600;">Error updating printer stats</p>
       `;
-    }
+      }
     },
 
     /**
@@ -1041,24 +1066,24 @@ try {
         console.error(`Missing container for row ${rowId}`);
         return;
       }
-        
+      
       try {
-        // Clear previous contents and any existing canvases
+        // Clean up previous visualization if exists
+        if (container.visualizerCleanup && typeof container.visualizerCleanup === 'function') {
+          container.visualizerCleanup();
+        }
+        
+        // Clear container
         container.innerHTML = '';
         
         // Add safety checks for capacity and printer
-        if (!capacity) {
-          console.error(`Missing capacity data for row ${rowId}`);
-          return;
-        }
-        
-        if (!printer) {
-          console.error(`Missing printer data for row ${rowId}`);
+        if (!capacity || !printer) {
+          console.error(`Missing capacity or printer data for row ${rowId}`);
           return;
         }
         
         // Check if capacity data is valid
-        if (!capacity || !capacity.fitsInPrinter) {
+        if (!capacity.fitsInPrinter) {
           const errorMsg = document.createElement('div');
           errorMsg.textContent = 'Object exceeds printer capacity';
           errorMsg.style.textAlign = 'center';
@@ -1067,23 +1092,54 @@ try {
           container.appendChild(errorMsg);
           return;
         }
-    
-        // Create canvas for 2D visualization (fallback method)
-        const canvas = document.createElement('canvas');
-        canvas.width = container.clientWidth || 280;
-        canvas.height = container.clientHeight || 200;
-        container.appendChild(canvas);
+        
+        // Check if we have the STL data for this row
+        let stlGeometry = null;
+        
+        if (this.rows[rowId] && this.rows[rowId].stlData && this.rows[rowId].viewerId) {
+          // Try to get the geometry from the ModelViewer
+          try {
+            if (PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.getGeometry === 'function') {
+              stlGeometry = PrinterCalc.ModelViewer.getGeometry(this.rows[rowId].viewerId);
+            } else {
+              // Fallback: Find the mesh in the viewer's scene
+              const viewer = PrinterCalc.ModelViewer.viewers[this.rows[rowId].viewerId];
+              
+              if (viewer && viewer.threeContext && viewer.threeContext.scene) {
+                // Find the model mesh in the scene
+                viewer.threeContext.scene.traverse(object => {
+                  if (object.isMesh && object.userData && object.userData.isModel) {
+                    // Clone the geometry for use in the batch visualizer
+                    stlGeometry = object.geometry.clone();
+                  }
+                });
+              }
+            }
+          } catch (error) {
+            console.warn('Error getting STL geometry from viewer:', error);
+          }
+        }
         
         // Explicitly show the container
         if (container.style.display === 'none') {
           container.style.display = 'block';
         }
-    
-        // Use the 2D visualization method
-        if (PrinterCalc.PrinterCapacity && typeof PrinterCalc.PrinterCapacity.visualize === 'function') {
-          PrinterCalc.PrinterCapacity.visualize(canvas, capacity, printer);
+        
+        // Use 3D visualization with STL geometry if available
+        if (PrinterCalc.PrinterCapacity && typeof PrinterCalc.PrinterCapacity.visualize3D === 'function') {
+          PrinterCalc.PrinterCapacity.visualize3D(container, capacity, printer, stlGeometry);
+        } else {
+          // Create canvas for 2D visualization (fallback)
+          const canvas = document.createElement('canvas');
+          canvas.width = container.clientWidth || 280;
+          canvas.height = container.clientHeight || 200;
+          container.appendChild(canvas);
+          
+          // Use the 2D visualization method
+          if (PrinterCalc.PrinterCapacity && typeof PrinterCalc.PrinterCapacity.visualize === 'function') {
+            PrinterCalc.PrinterCapacity.visualize(canvas, capacity, printer);
+          }
         }
-    
       } catch (error) {
         console.error(`Error updating packing visualization for row ${rowId}:`, error);
         
@@ -1103,116 +1159,116 @@ try {
         }
       }
     },
-    
+
     // Helper methods for 3D visualization
-    init3DVisualizer: function(container) {
+    init3DVisualizer: function (container) {
       const width = container.clientWidth || 280;
       const height = container.clientHeight || 200;
-      
+
       // Determine if we're in dark mode
       const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-      
+
       // Create scene
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(isDarkMode ? 0x1e293b : 0xf8fafc);
-      
+
       // Create camera
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 2000);
       camera.position.set(400, 400, 400);
-      
+
       // Create renderer
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(width, height);
       renderer.setPixelRatio(window.devicePixelRatio || 1);
       container.appendChild(renderer.domElement);
-      
+
       // Add lights
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
       scene.add(ambientLight);
-      
+
       const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
       directionalLight.position.set(1, 1, 1);
       scene.add(directionalLight);
-      
+
       return { scene, camera, renderer };
     },
-    
-    addPrinterVolume: function(scene, printer) {
+
+    addPrinterVolume: function (scene, printer) {
       const { width, depth, height } = printer.dimensions;
-      
+
       // Create wireframe box for printer volume
       const geometry = new THREE.BoxGeometry(width, height, depth);
-      const material = new THREE.MeshBasicMaterial({ 
-        color: 0x3b82f6, 
+      const material = new THREE.MeshBasicMaterial({
+        color: 0x3b82f6,
         wireframe: true,
         opacity: 0.5,
         transparent: true
       });
-      
+
       const printerBox = new THREE.Mesh(geometry, material);
-      
+
       // Position box with bottom at y=0 and centered in xz plane
-      printerBox.position.set(width/2, height/2, depth/2);
-      
+      printerBox.position.set(width / 2, height / 2, depth / 2);
+
       scene.add(printerBox);
-      
+
       // Add grid helper at bottom
       const gridHelper = new THREE.GridHelper(Math.max(width, depth) * 1.2, 10, 0x555555, 0x333333);
       gridHelper.rotation.x = Math.PI / 2;
       gridHelper.position.y = 0.1; // slightly above bottom to avoid z-fighting
       scene.add(gridHelper);
     },
-    
-    addPackedObjects: function(scene, capacityData) {
+
+    addPackedObjects: function (scene, capacityData) {
       const { positions, objectDimensions } = capacityData;
-      
+
       if (!positions || !positions.length) return;
-      
+
       const geometry = new THREE.BoxGeometry(
-        objectDimensions.width, 
-        objectDimensions.height, 
+        objectDimensions.width,
+        objectDimensions.height,
         objectDimensions.depth
       );
-      
-      const material = new THREE.MeshPhongMaterial({ 
+
+      const material = new THREE.MeshPhongMaterial({
         color: 0x4ade80,
         opacity: 0.8,
         transparent: true
       });
-      
+
       positions.forEach(pos => {
         const mesh = new THREE.Mesh(geometry, material);
-        
+
         // Position the mesh
         mesh.position.set(
-          pos.x + objectDimensions.width/2, 
-          pos.z + objectDimensions.height/2, 
-          pos.y + objectDimensions.depth/2
+          pos.x + objectDimensions.width / 2,
+          pos.z + objectDimensions.height / 2,
+          pos.y + objectDimensions.depth / 2
         );
-        
+
         scene.add(mesh);
       });
     },
-    
-    fitCameraToScene: function(camera, scene) {
+
+    fitCameraToScene: function (camera, scene) {
       // Create a bounding box for all objects in the scene
       const box = new THREE.Box3().setFromObject(scene);
-      
+
       // Get the center and size of the box
       const center = new THREE.Vector3();
       box.getCenter(center);
-      
+
       const size = new THREE.Vector3();
       box.getSize(size);
-      
+
       // Calculate the distance needed to view the entire box
       const maxDim = Math.max(size.x, size.y, size.z);
       const fov = camera.fov * (Math.PI / 180);
       let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
-      
+
       // Add some padding
       cameraZ *= 1.5;
-      
+
       // Position the camera
       camera.position.set(center.x + cameraZ, center.y + cameraZ, center.z + cameraZ);
       camera.lookAt(center);
@@ -1226,22 +1282,22 @@ try {
       // Get row element
       const row = document.getElementById(rowId);
       if (!row) return;
-    
+
       try {
         // Clean up viewer
         if (this.rows[rowId] && this.rows[rowId].viewerId) {
           PrinterCalc.ModelViewer.dispose(this.rows[rowId].viewerId);
         }
-    
+
         // Clean up any visualizations
         const visualizers = row.querySelectorAll('.packing-visualizer');
         visualizers.forEach(vis => {
           vis.innerHTML = '';
         });
-    
+
         // Remove row element
         row.remove();
-    
+
         // Remove from rows object
         delete this.rows[rowId];
       } catch (error) {
