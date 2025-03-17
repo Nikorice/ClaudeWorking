@@ -939,9 +939,13 @@
           };
         }
 
-        // Calculate material costs with error handling
+        // Calculate material costs with enhanced error handling
         let materialResult;
         try {
+          if (!PrinterCalc.MaterialCalculator || typeof PrinterCalc.MaterialCalculator.calculate !== 'function') {
+            throw new Error('MaterialCalculator not available or not initialized');
+          }
+          
           materialResult = PrinterCalc.MaterialCalculator.calculate(
             volumeCm3,
             applyGlaze,

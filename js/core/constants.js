@@ -1,4 +1,3 @@
-/Users/nicholasgobert/Desktop/ClaudeWorking/js/core/constants.js
 /**
  * constants.js - Core Constants Module
  * 
@@ -7,10 +6,10 @@
  */
 
 // Create a namespace for our constants to avoid global scope pollution
-const PrinterCalc = window.PrinterCalc || {};
+window.PrinterCalc = window.PrinterCalc || {};
 
 // Material constants
-PrinterCalc.CONSTANTS = {
+window.PrinterCalc.CONSTANTS = {
   // Material properties
   MATERIALS: {
     // Powder density in kg/cm³
@@ -123,3 +122,6 @@ PrinterCalc.CONSTANTS = {
 
 // Export the namespace to make it globally available
 window.PrinterCalc = PrinterCalc;
+
+// Create a backup copy in case the namespace gets reset
+window.PrinterCalc_CONSTANTS_BACKUP = window.PrinterCalc.CONSTANTS;

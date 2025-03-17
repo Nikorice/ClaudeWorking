@@ -33,8 +33,19 @@ document.addEventListener('DOMContentLoaded', function () {
  * Initialize application with dependency checking
  */
 function initializeApplication() {
-  // Check core dependencies first with retry mechanism
-  const maxRetries = 5;
+  // Ensure PrinterCalc namespace always exists
+  window.PrinterCalc = window.PrinterCalc || {};
+  
+  console.log("Starting initialization with namespace:", Object.keys(window.PrinterCalc).join(", "));
+  
+  // Force initialize constants if not already loaded
+  if (!window.PrinterCalc.CONSTANTS && typeof initializeConstants === 'function') {
+    console.log("Pre-initializing CONSTANTS");
+    initializeConstants();
+  }
+  
+  // Check core dependencies with enhanced retry mechanism
+  const maxRetries = 8; // Increase retry count
   let retryCount = 0;
 
   function checkAndInitialize() {
@@ -70,6 +81,30 @@ function initializeApplication() {
       }
     }
   }
+
+  /**
+ * Verify that CONSTANTS is fully initialized
+ */
+function verifyConstants() {
+  if (!window.PrinterCalc || !window.PrinterCalc.CONSTANTS) {
+    console.error("CONSTANTS not initialized");
+    return false;
+  }
+  
+  // Check that all required sections exist
+  const requiredSections = ['MATERIALS', 'PRINTERS', 'SPACING', 'PRICING', 'CURRENCY_SYMBOLS'];
+  const missingSections = requiredSections.filter(section => 
+    !window.PrinterCalc.CONSTANTS[section]
+  );
+  
+  if (missingSections.length > 0) {
+    console.error("Missing CONSTANTS sections:", missingSections.join(', '));
+    return false;
+  }
+  
+  console.log("CONSTANTS verification complete - all sections present");
+  return true;
+}
 
   function initializeModules() {
     // Log available modules
@@ -152,6 +187,56 @@ function initializeApplication() {
 
   // Start the initialization process
   checkAndInitialize();
+}
+
+/**
+ * Initialize basic constants to ensure they're available
+ */
+function initializeConstants() {
+  if (!window.PrinterCalc) {
+    window.PrinterCalc = {};
+  }
+  
+  if (!window.PrinterCalc.CONSTANTS) {
+    console.log("Creating minimal CONSTANTS");
+    window.PrinterCalc.CONSTANTS = {
+      MATERIALS: {
+        POWDER_DENSITY: 0.002,
+        BINDER_RATIO: 0.27,
+        SILICA_DENSITY: 0.55,
+        GLAZE_FACTOR: 0.1615,
+        GLAZE_BASE: 31.76
+      },
+      PRINTERS: {
+        '400': {
+          name: 'Printer 400',
+          dimensions: { width: 390, depth: 290, height: 200 },
+          layerTime: 45,
+          wallMargin: 10
+        },
+        '600': {
+          name: 'Printer 600',
+          dimensions: { width: 595, depth: 600, height: 250 },
+          layerTime: 35,
+          wallMargin: 10
+        }
+      },
+      SPACING: {
+        OBJECT_SPACING: 15,
+        VERTICAL_SPACING: 10,
+        LAYER_HEIGHT: 0.1
+      },
+      PRICING: {
+        USD: { powder: 100.00, binder: 0.09, silica: 0.072, glaze: 0.01 },
+        EUR: { powder: 92.86, binder: 0.085, silica: 0.069, glaze: 0.0098 },
+        JPY: { powder: 14285.71, binder: 12.50, silica: 11.00, glaze: 1.56 },
+        SGD: { powder: 135.00, binder: 0.12, silica: 0.10, glaze: 0.0137 }
+      },
+      CURRENCY_SYMBOLS: {
+        USD: '$', EUR: '€', JPY: '¥', SGD: 'S$'
+      }
+    };
+  }
 }
 
 /**

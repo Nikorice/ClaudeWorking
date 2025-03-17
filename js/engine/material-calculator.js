@@ -18,6 +18,14 @@
      * @returns {Object} Material usage and cost data
      */
     calculate: function (volumeCm3, applyGlaze = true, currency = 'USD') {
+      console.log("MaterialCalculator.calculate called");
+      
+      // Ensure we have constants before proceeding
+      if (!window.PrinterCalc || !PrinterCalc.CONSTANTS || !PrinterCalc.CONSTANTS.MATERIALS) {
+        console.error("Missing CONSTANTS.MATERIALS in MaterialCalculator.calculate");
+        throw new Error('Material constants not available');
+      }
+      
       // Validate inputs with fallback if Utils isn't available
       if ((PrinterCalc.Utils && typeof PrinterCalc.Utils.isPositiveNumber === 'function' &&
         !PrinterCalc.Utils.isPositiveNumber(volumeCm3)) ||
@@ -194,4 +202,8 @@
       };
     }
   };
+
+  // Explicitly expose the module globally to ensure it's available
+  window.PrinterCalc.MaterialCalculator = PrinterCalc.MaterialCalculator;
+  console.log("MaterialCalculator initialized");
 })();

@@ -44,7 +44,12 @@
 
         // Get spacing constants with fallbacks
         const wallMargin = printer.wallMargin || 10;
-        const objectSpacing = (PrinterCalc.CONSTANTS.SPACING && PrinterCalc.CONSTANTS.SPACING.OBJECT_SPACING) || 15;
+        const objectSpacing = (PrinterCalc.CONSTANTS && PrinterCalc.CONSTANTS.SPACING && 
+                              PrinterCalc.CONSTANTS.SPACING.OBJECT_SPACING) || 15;
+        
+        // Get vertical spacing - use the same value as objectSpacing if not defined
+        const verticalSpacing = (PrinterCalc.CONSTANTS && PrinterCalc.CONSTANTS.SPACING && 
+                               PrinterCalc.CONSTANTS.SPACING.VERTICAL_SPACING) || objectSpacing;
 
         // Determine object dimensions based on orientation
         let objectWidth, objectDepth, objectHeight;
@@ -90,8 +95,7 @@
         const countX = Math.floor((availableWidth + objectSpacing) / (objectWidth + objectSpacing));
         const countY = Math.floor((availableDepth + objectSpacing) / (objectDepth + objectSpacing));
 
-        // For Z-axis, account for object spacing between layers
-        const verticalSpacing = objectSpacing; // Use the same spacing for vertical direction
+        // For Z-axis, use vertical spacing
         const countZ = Math.floor((availableHeight + verticalSpacing) / (objectHeight + verticalSpacing));
 
         // Log the calculations for debugging
@@ -104,11 +108,11 @@
         const positions = this.generatePositions(
           objectWidth, objectDepth, objectHeight,
           countX, countY, countZ,
-          wallMargin, objectSpacing
+          wallMargin, objectSpacing, verticalSpacing
         );
 
         // Calculate maximum print height
-        const printHeight = countZ * objectHeight;
+        const printHeight = countZ * objectHeight + (countZ - 1) * verticalSpacing;
 
         // Calculate print time with fallback
         let printTimeSeconds = 0;
@@ -179,16 +183,14 @@
      * @param {number} countY - Number of objects in Y direction
      * @param {number} countZ - Number of objects in Z direction
      * @param {number} wallMargin - Margin from printer walls
-     * @param {number} spacing - Spacing between objects
+     * @param {number} spacing - Spacing between objects in XY plane
+     * @param {number} verticalSpacing - Spacing between objects in Z direction
      * @returns {Array} Array of position objects {x, y, z}
      */
-    generatePositions: function (width, depth, height, countX, countY, countZ, wallMargin, spacing) {
+    generatePositions: function (width, depth, height, countX, countY, countZ, wallMargin, spacing, verticalSpacing) {
       try {
         const positions = [];
 
-        // Add vertical spacing - we'll use the same spacing as the XY spacing for consistency
-        const verticalSpacing = spacing;
-        
         for (let z = 0; z < countZ; z++) {
           // Calculate z position - start at z=0 (bottom of printer)
           // Add vertical spacing between layers
