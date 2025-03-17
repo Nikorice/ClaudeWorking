@@ -237,8 +237,28 @@
        */
       applyScaling: function(rowId, newDimensions, scaleFactor) {
         try {
+          console.log('Applying scaling to row:', rowId, 'with scale factor:', scaleFactor);
+          
+          // Ensure we have access to STLManager
+          if (!PrinterCalc.STLManager) {
+            console.error('STLManager not available');
+            throw new Error('STLManager not available');
+          }
+          
+          // Get row data from STLManager, not from this.rows
           const rowData = PrinterCalc.STLManager.rows[rowId];
-          if (!rowData || !rowData.stlData) return;
+          if (!rowData) {
+            console.error('Row data not found for ID:', rowId);
+            throw new Error('Row data not found');
+          }
+          
+          if (!rowData.stlData) {
+            console.error('No STL data in row:', rowId);
+            throw new Error('No STL data available');
+          }
+          
+          console.log('Original dimensions:', rowData.stlData.dimensions);
+          console.log('New dimensions:', newDimensions);
           
           // Calculate the volume ratio based on dimensions
           const volumeRatio = (
@@ -248,6 +268,8 @@
             rowData.stlData.dimensions.depth * 
             rowData.stlData.dimensions.height
           );
+          
+          console.log('Volume ratio:', volumeRatio);
           
           // Update dimensions and volume
           rowData.stlData.dimensions = { ...newDimensions };
@@ -259,8 +281,88 @@
             PrinterCalc.ModelViewer.scaleModel(rowData.viewerId, scaleFactor);
           }
           
-          // Update results
+          // Update results first
           PrinterCalc.STLManager.updateResults(rowId);
+          
+          // Then update the batch visualizer
+          setTimeout(() => {
+            // Get row element
+            const row = document.getElementById(rowId);
+            if (!row) {
+              console.error('Row element not found:', rowId);
+              return;
+            }
+            
+            console.log('Updating batch visualizers with scale factor:', scaleFactor);
+            
+            // Get visualizer elements
+            const packing400El = row.querySelector(`#${rowId}-packing-400`);
+            const packing600El = row.querySelector(`#${rowId}-packing-600`);
+            
+            // Clear visualizers if they exist
+            if (packing400El) packing400El.innerHTML = '';
+            if (packing600El) packing600El.innerHTML = '';
+            
+            // Get printer specs
+            const printer400 = PrinterCalc.CONSTANTS.PRINTERS['400'];
+            const printer600 = PrinterCalc.CONSTANTS.PRINTERS['600'];
+            
+            // Get current orientation
+            const orientation = rowData.orientation || 'flat';
+            
+            // Recalculate and redraw visualizations
+            if (packing400El && PrinterCalc.PrinterCapacity) {
+              try {
+                // Calculate capacity for Printer 400
+                const capacity400 = PrinterCalc.PrinterCapacity.calculate(
+                  newDimensions,
+                  orientation,
+                  '400'
+                );
+                
+                // Add scale factor to capacity data
+                capacity400.scaleFactor = scaleFactor;
+                
+                console.log('Capacity 400 calculated:', capacity400);
+                
+                // Redraw visualization
+                PrinterCalc.STLManager.updatePackingVisualization(
+                  rowId,
+                  packing400El,
+                  capacity400,
+                  printer400
+                );
+              } catch (err) {
+                console.error('Error updating 400 visualizer:', err);
+              }
+            }
+            
+            if (packing600El && PrinterCalc.PrinterCapacity) {
+              try {
+                // Calculate capacity for Printer 600
+                const capacity600 = PrinterCalc.PrinterCapacity.calculate(
+                  newDimensions,
+                  orientation,
+                  '600'
+                );
+                
+                // Add scale factor to capacity data
+                capacity600.scaleFactor = scaleFactor;
+                
+                console.log('Capacity 600 calculated:', capacity600);
+                
+                // Redraw visualization
+                PrinterCalc.STLManager.updatePackingVisualization(
+                  rowId,
+                  packing600El,
+                  capacity600,
+                  printer600
+                );
+              } catch (err) {
+                console.error('Error updating 600 visualizer:', err);
+              }
+            }
+          }, 100); // Small delay to ensure updateResults has completed
           
           // Show notification
           if (PrinterCalc.Notification) {
@@ -271,6 +373,7 @@
           }
         } catch (error) {
           console.error('Error applying scaling:', error);
+          console.error('Error stack:', error.stack);
           
           if (PrinterCalc.Notification) {
             PrinterCalc.Notification.error(
@@ -359,6 +462,128 @@
         } catch (error) {
           console.error('Error initializing manual scaling:', error);
         }
+      },
+      
+      initDimensionClickHandlers: function() {
+        // Find all stat-value elements that contain dimensions
+        const dimensionStats = document.querySelectorAll('.stat-box .stat-value');
+        
+        dimensionStats.forEach(statEl => {
+          // Only add click handler to dimension stats (ones that contain × symbol)
+          if (statEl.textContent.includes('×')) {
+            // Make it visually clear this is clickable
+            statEl.style.cursor = 'pointer';
+            
+            // Add click handler
+            statEl.addEventListener('click', (e) => {
+              // Find the parent row
+              const row = statEl.closest('.stl-row, #manual-tab');
+              
+              if (!row) return;
+              
+              // Handle different row types
+              if (row.id === 'manual-tab') {
+                // For manual tab, just focus on the width input
+                const widthInput = document.getElementById('width');
+                if (widthInput) {
+                  widthInput.focus();
+                  widthInput.select();
+                }
+              } else {
+                // For STL rows, find and click the scaling toggle button
+                const toggleBtn = row.querySelector('.toggle-scaling');
+                if (toggleBtn) {
+                  toggleBtn.click();
+                }
+              }
+            });
+          }
+        });
+      },
+      
+      // Add this new method
+      setupDimensionClickHandlers: function() {
+        console.log('Setting up dimension click handlers');
+        
+        // Use event delegation to handle clicks on dimensions
+        document.addEventListener('click', function(event) {
+          // Find if we clicked on a stat value that contains dimensions
+          let target = event.target;
+          
+          // Check if the clicked element is a stat value or a child of one
+          while (target && !target.classList?.contains('stat-value')) {
+            if (target === document.body) return;
+            target = target.parentElement;
+          }
+          
+          // If we found a stat value
+          if (target && target.textContent.includes('×')) {
+            console.log('Dimension value clicked:', target.textContent);
+            
+            // Find the parent row or manual tab
+            const row = target.closest('.stl-row, #manual-tab');
+            if (!row) {
+              console.log('No parent row found');
+              return;
+            }
+            
+            console.log('Found parent row:', row.id);
+            
+            // Handle different row types
+            if (row.id === 'manual-tab') {
+              // For manual tab, just focus on the width input
+              const widthInput = document.getElementById('width');
+              if (widthInput) {
+                console.log('Focusing on manual width input');
+                widthInput.focus();
+                widthInput.select();
+              }
+            } else {
+              // For STL rows, find and click the scaling toggle button
+              const toggleBtn = row.querySelector('.toggle-scaling');
+              if (toggleBtn) {
+                console.log('Clicking scale toggle button');
+                toggleBtn.click();
+              } else {
+                console.log('Scale toggle button not found');
+              }
+            }
+          }
+        });
+        
+        // Highlight all dimension values to make them visibly clickable
+        function highlightDimensions() {
+          console.log('Highlighting dimension values');
+          const dimensionStats = document.querySelectorAll('.stat-box .stat-value');
+          
+          dimensionStats.forEach(statEl => {
+            // First, reset any previous styling
+            statEl.style.cursor = '';
+            statEl.style.color = '';
+            statEl.title = '';
+            
+            // Check if this is dimensions label (contains × symbol AND has a "Dimensions" label sibling)
+            if (statEl.textContent.includes('×')) {
+              // Extra check: make sure this is actually dimensions by looking at the label
+              const statBox = statEl.closest('.stat-box');
+              const label = statBox ? statBox.querySelector('.stat-label') : null;
+              
+              if (label && label.textContent.toLowerCase().includes('dimension')) {
+                statEl.style.cursor = 'pointer';
+                statEl.style.color = '#3b82f6'; // Blue color to indicate clickable
+                statEl.title = 'Click to scale';
+              }
+            }
+          });
+        }
+        
+        // Run immediately
+        highlightDimensions();
+        
+        // Also run whenever results are updated
+        document.addEventListener('printercalc:resultsUpdated', highlightDimensions);
+        
+        console.log('Dimension click handlers setup complete');
       }
     };
   })();

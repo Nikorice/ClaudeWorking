@@ -1,3 +1,4 @@
+/Users/nicholasgobert/Desktop/ClaudeWorking/js/core/constants.js
 /**
  * constants.js - Core Constants Module
  * 
@@ -61,6 +62,9 @@ PrinterCalc.CONSTANTS = {
   SPACING: {
     // Default object spacing in mm
     OBJECT_SPACING: 15,
+    
+    // Default vertical spacing in mm
+    VERTICAL_SPACING: 10,
     
     // Layer height in mm
     LAYER_HEIGHT: 0.1

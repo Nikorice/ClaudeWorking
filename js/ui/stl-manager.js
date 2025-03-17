@@ -77,6 +77,11 @@
           typeof PrinterCalc.ScalingManager.initManualScaling === 'function') {
         PrinterCalc.ScalingManager.initManualScaling();
       }
+      setTimeout(() => {
+        if (PrinterCalc.ScalingManager && typeof PrinterCalc.ScalingManager.initDimensionClickHandlers === 'function') {
+          PrinterCalc.ScalingManager.initDimensionClickHandlers();
+        }
+      }, 200);
     },
 
     /**
@@ -1099,6 +1104,11 @@
             PrinterCalc.CONSTANTS.PRINTERS['600']
           );
         }
+        // Dispatch event to notify of results update
+        const event = new CustomEvent('printercalc:resultsUpdated', {
+          detail: { rowId: rowId }
+        });
+        document.dispatchEvent(event);
       } catch (error) {
         console.error(`Error updating results for row ${rowId}:`, error);
         this.showErrorInRow(rowId, 'Error updating results. Please try again.');

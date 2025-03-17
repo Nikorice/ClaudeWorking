@@ -11,7 +11,7 @@
      * @param {string} printerType - "400" or "600"
      * @returns {Object} Capacity information
      */
-    calculate: function (dimensions, orientation, printerType = '400') {
+    calculate: function (dimensions, orientation, printerType = '400', scaleFactor = 1) {
       try {
         // Check if required constants are available
         if (!PrinterCalc.CONSTANTS || !PrinterCalc.CONSTANTS.PRINTERS) {
@@ -89,7 +89,13 @@
         // Calculate how many objects fit along each axis
         const countX = Math.floor((availableWidth + objectSpacing) / (objectWidth + objectSpacing));
         const countY = Math.floor((availableDepth + objectSpacing) / (objectDepth + objectSpacing));
-        const countZ = Math.floor(availableHeight / objectHeight);
+
+        // For Z-axis, account for object spacing between layers
+        const verticalSpacing = objectSpacing; // Use the same spacing for vertical direction
+        const countZ = Math.floor((availableHeight + verticalSpacing) / (objectHeight + verticalSpacing));
+
+        // Log the calculations for debugging
+        console.log(`Calculating Z capacity: ${availableHeight} / (${objectHeight} + ${verticalSpacing}) = ${countZ}`);
 
         // Calculate total objects
         const totalObjects = countX * countY * countZ;
@@ -146,7 +152,8 @@
             width: objectWidth,
             depth: objectDepth,
             height: objectHeight
-          }
+          },
+          scaleFactor: scaleFactor
         };
       } catch (error) {
         console.error('Error in printer capacity calculation:', error);
@@ -179,9 +186,13 @@
       try {
         const positions = [];
 
+        // Add vertical spacing - we'll use the same spacing as the XY spacing for consistency
+        const verticalSpacing = spacing;
+        
         for (let z = 0; z < countZ; z++) {
           // Calculate z position - start at z=0 (bottom of printer)
-          const zPos = z * height;
+          // Add vertical spacing between layers
+          const zPos = z * (height + verticalSpacing);
 
           for (let y = 0; y < countY; y++) {
             const yPos = wallMargin + (y * (depth + spacing));
@@ -492,17 +503,25 @@
       // Add models to the scene if STL geometry is provided
       if (stlGeometry && capacityData.positions) {
         const { positions } = capacityData;
+        const scaleFactor = capacityData.scaleFactor || 1; // Get scale factor or default to 1
 
         positions.forEach((pos, index) => {
-          // Create a new mesh for each position
-          const mesh = new THREE.Mesh(stlGeometry.clone(), modelMaterial.clone());
+          // Create a new mesh for each position with the scaled geometry
+          const geometryClone = stlGeometry.clone();
+
+          // Apply scale factor to the geometry if not already applied and if needed
+          if (scaleFactor !== 1 && geometryClone.scale) {
+            geometryClone.scale(scaleFactor, scaleFactor, scaleFactor);
+          }
+
+          const mesh = new THREE.Mesh(geometryClone, modelMaterial.clone());
 
           // Position according to the packing data
           // In Three.js, Y is up/down, so we use pos.z for the height
           mesh.position.set(
-            pos.x + capacityData.objectDimensions.width / 2,  // Center in X
+            pos.x + capacityData.objectDimensions.width * scaleFactor / 2,  // Center in X with scaling
             pos.z,  // Start at bottom in Y (Height)
-            pos.y + capacityData.objectDimensions.depth / 2   // Center in Z
+            pos.y + capacityData.objectDimensions.depth * scaleFactor / 2   // Center in Z with scaling
           );
 
           // Add to scene
@@ -510,22 +529,26 @@
         });
       } else {
         // Fallback to simple boxes if no STL geometry is provided
+        const scaleFactor = capacityData.scaleFactor || 1; // Get scale factor or default to 1
+        console.log(`Creating boxes with scale factor: ${scaleFactor}`);
+        
         const boxGeometry = new THREE.BoxGeometry(
-          capacityData.objectDimensions.width,
-          capacityData.objectDimensions.height,
-          capacityData.objectDimensions.depth
+          capacityData.objectDimensions.width * scaleFactor,  // Apply scale factor
+          capacityData.objectDimensions.height * scaleFactor, // Apply scale factor
+          capacityData.objectDimensions.depth * scaleFactor   // Apply scale factor
         );
-
+        
+        // Update position calculation for boxes with scale factor
         capacityData.positions.forEach(pos => {
           const boxMesh = new THREE.Mesh(boxGeometry, modelMaterial.clone());
-
-          // Position with bottom at floor level
+          
+          // Position with bottom at floor level, adjusted for scale
           boxMesh.position.set(
-            pos.x + capacityData.objectDimensions.width / 2,  // Center in X
-            pos.z + capacityData.objectDimensions.height / 2,  // Center in Y but start from bottom
-            pos.y + capacityData.objectDimensions.depth / 2   // Center in Z
+            pos.x + (capacityData.objectDimensions.width * scaleFactor / 2),  // Center in X with scale
+            pos.z + (capacityData.objectDimensions.height * scaleFactor / 2),  // Center in Y with scale
+            pos.y + (capacityData.objectDimensions.depth * scaleFactor / 2)   // Center in Z with scale
           );
-
+          
           scene.add(boxMesh);
         });
       }
