@@ -128,6 +128,18 @@ function initializeApplication() {
       }
       
       console.log('Initialization complete');
+
+// Initialize scaling functionality
+if (window.PrinterCalc && PrinterCalc.ScalingManager) {
+  console.log('Initializing scaling functionality...');
+  
+  // Add scaling UI to existing STL rows
+  if (PrinterCalc.STLManager && PrinterCalc.STLManager.rows) {
+    Object.keys(PrinterCalc.STLManager.rows).forEach(rowId => {
+      PrinterCalc.STLManager.addScalingUI(rowId);
+    });
+  }
+}
     }, 300);
   }
   

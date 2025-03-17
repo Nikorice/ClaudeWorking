@@ -217,4 +217,30 @@
       mesh.userData.isModel = true;
     }
   };
+/**
+   * Scale a 3D model
+   * @param {string} viewerId - Viewer ID
+   * @param {number} factor - Scale factor
+   */
+PrinterCalc.ModelViewer.scaleModel = function(viewerId, factor) {
+  const viewer = this.viewers[viewerId];
+  if (!viewer || !viewer.threeContext) return;
+  
+  try {
+    const { scene } = viewer.threeContext;
+    
+    // Find model mesh
+    scene.traverse(object => {
+      if (object.isMesh && object.userData && object.userData.isModel) {
+        // Apply scaling
+        object.scale.set(factor, factor, factor);
+        
+        // Update model
+        object.updateMatrix();
+      }
+    });
+  } catch (error) {
+    console.error('Error scaling model:', error);
+  }
+};
 })();

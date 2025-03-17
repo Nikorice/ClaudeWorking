@@ -1561,3 +1561,132 @@ input.invalid {
   border-radius: 3px;
   transition: width 0.3s ease;
 }
+/* Scaling Section Styles */
+.scaling-section {
+  margin: var(--space-4) 0;
+  transition: var(--transition);
+}
+
+.scaling-controls {
+  background-color: var(--gray-50);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-top: var(--space-3);
+  border: 1px solid var(--gray-200);
+  transition: var(--transition);
+}
+
+[data-theme="dark"] .scaling-controls {
+  background-color: var(--gray-800);
+  border-color: var(--gray-700);
+}
+
+.scaling-preview {
+  background-color: var(--gray-100);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-top: var(--space-3);
+  border-left: 3px solid var(--primary);
+  transition: var(--transition);
+}
+
+[data-theme="dark"] .scaling-preview {
+  background-color: var(--gray-700);
+}
+
+.scaling-preview h4 {
+  margin-top: 0;
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.scaling-controls .form-group {
+  margin-bottom: var(--space-3);
+}
+
+/* Interactive Dimensions */
+.interactive-dimension {
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-block;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.interactive-dimension:hover {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+[data-theme="dark"] .interactive-dimension:hover {
+  background-color: var(--primary-dark);
+}
+
+/* Scale Factor Input Special Styling */
+input.scale-factor {
+  font-weight: 600;
+  color: var(--primary);
+  text-align: center;
+}
+
+[data-theme="dark"] input.scale-factor {
+  color: var(--primary);
+  background-color: var(--gray-700);
+}
+
+/* Make dimension inputs in the stats grid clickable */
+.stat-box .stat-value {
+  position: relative;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.stat-box .stat-value:hover {
+  color: var(--primary);
+}
+
+.stat-box .stat-value:hover::after {
+  content: 'Click to Scale';
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  white-space: nowrap;
+  background-color: var(--dark);
+  color: var(--light);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  opacity: 0.9;
+}
+
+/* Enhanced visualization during scaling */
+.model-viewer.scaling {
+  position: relative;
+}
+
+.model-viewer.scaling::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px dashed var(--primary);
+  border-radius: var(--radius);
+  animation: scalingPulse 2s infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes scalingPulse {
+  0% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}

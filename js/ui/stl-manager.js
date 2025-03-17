@@ -32,7 +32,7 @@
     /**
      * Initialize STL manager
      */
-    init: function () {
+    init: function() {
       // Add new STL button handler
       const addButton = document.getElementById('addNewStl');
       if (addButton) {
@@ -49,6 +49,34 @@
 
       // Show memory warning if appropriate
       this.showMemoryWarningIfNeeded();
+      
+      // Add lock proportions checkbox to manual tab
+      const manualTab = document.getElementById('manual-tab');
+      if (manualTab) {
+        const formGroups = manualTab.querySelectorAll('.form-group');
+        const lastFormGroup = formGroups[formGroups.length - 1];
+        
+        if (lastFormGroup && !document.getElementById('manual-lock-proportions')) {
+          const toggleContainer = document.createElement('div');
+          toggleContainer.className = 'toggle-container';
+          toggleContainer.style.marginBottom = '1rem';
+          toggleContainer.innerHTML = `
+            <label class="toggle-switch">
+              <input type="checkbox" id="manual-lock-proportions" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">Lock Proportions</span>
+          `;
+          
+          lastFormGroup.after(toggleContainer);
+        }
+      }
+      
+      // Initialize manual scaling
+      if (PrinterCalc.ScalingManager && 
+          typeof PrinterCalc.ScalingManager.initManualScaling === 'function') {
+        PrinterCalc.ScalingManager.initManualScaling();
+      }
     },
 
     /**
@@ -233,7 +261,7 @@
     /**
      * Modified handleFileUpload function to properly show visualization elements
      */
-    handleFileUpload: async function (rowId, file) {
+    handleFileUpload: async function(rowId, file) {
       console.log('Handling file upload for row:', rowId);
 
       const row = document.getElementById(rowId);
@@ -354,6 +382,7 @@
 
               // Continue with calculations, just without 3D visualization
               this.processWithout3D(rowId, file);
+              return;
             }
           } else {
             console.error('ModelViewer not available');
@@ -365,6 +394,7 @@
 
             // Continue with calculations, just without 3D visualization
             this.processWithout3D(rowId, file);
+            return;
           }
         }
 
@@ -466,6 +496,11 @@
             'STL Loaded',
             `Model loaded successfully (${stlData.triangleCount.toLocaleString()} triangles)`
           );
+        }
+        
+        // Add scaling UI if not already present
+        if (!row.querySelector('.scaling-section')) {
+          this.addScalingUI(rowId);
         }
       } catch (error) {
         console.error('Error handling file upload:', error);
@@ -649,6 +684,153 @@
     // This is the key function that needs fixing in stl-manager.js
     // Replace the updateResults function with this fixed version
 
+    /**
+     * Add scaling UI to STL row
+     * @param {string} rowId - Row ID
+     */
+    addScalingUI: function(rowId) {
+      try {
+        const row = document.getElementById(rowId);
+        if (!row) return;
+        
+        // Only add if not already present
+        if (row.querySelector('.scaling-section')) return;
+        
+        // Check if this is a valid STL row, not a print time calculator section
+        if (!this.rows[rowId] || !this.rows[rowId].stlData) {
+          console.log('Not adding scaling UI to non-STL row:', rowId);
+          return;
+        }
+        
+        // Find the results panel
+        const resultsPanel = row.querySelector('.results-panel');
+        if (!resultsPanel) return;
+        
+        // Create scaling section
+        const scalingSection = document.createElement('div');
+        scalingSection.className = 'scaling-section';
+        
+        // Add HTML content for scaling UI
+        scalingSection.innerHTML = `
+          <button class="btn btn-primary btn-sm toggle-scaling">
+            <span class="material-icon">transform</span> Scale Model
+          </button>
+          
+          <div class="scaling-controls" style="display: none; margin-top: 1rem;">
+            <div class="form-group">
+              <label for="${rowId}-scale-factor">Scale Factor</label>
+              <div class="input-group">
+                <input 
+                  id="${rowId}-scale-factor" 
+                  class="scale-factor" 
+                  type="number" 
+                  min="0.1" 
+                  max="5" 
+                  step="0.01" 
+                  value="1.00"
+                >
+                <span class="input-group-append">×</span>
+              </div>
+            </div>
+            
+            <div class="toggle-container">
+              <label class="toggle-switch">
+                <input type="checkbox" class="lock-proportions" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label">Lock Proportions</span>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0;">
+              <div class="form-group">
+                <label for="${rowId}-scale-width">Width (mm)</label>
+                <input 
+                  id="${rowId}-scale-width" 
+                  class="scale-width" 
+                  type="number" 
+                  min="0.1" 
+                  step="0.1"
+                >
+              </div>
+              
+              <div class="form-group">
+                <label for="${rowId}-scale-depth">Depth (mm)</label>
+                <input 
+                  id="${rowId}-scale-depth" 
+                  class="scale-depth" 
+                  type="number" 
+                  min="0.1" 
+                  step="0.1"
+                >
+              </div>
+              
+              <div class="form-group">
+                <label for="${rowId}-scale-height">Height (mm)</label>
+                <input 
+                  id="${rowId}-scale-height" 
+                  class="scale-height" 
+                  type="number" 
+                  min="0.1" 
+                  step="0.1"
+                >
+              </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+              <button class="btn btn-primary apply-scale">
+                Apply Scale
+              </button>
+              
+              <button class="btn btn-outline cancel-scale">
+                Cancel
+              </button>
+            </div>
+          </div>
+          
+          <div class="scaling-preview" style="
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: var(--gray-50);
+            border-radius: var(--radius);
+          ">
+            <h4>Preview of Changes</h4>
+            <div style="display: flex; justify-content: space-between;">
+              <div>
+                <p><strong>Original Volume:</strong> <span class="original-volume">--</span></p>
+                <p><strong>New Volume:</strong> <span class="new-volume">--</span></p>
+              </div>
+              <div>
+                <p><strong>Volume Change:</strong> <span class="volume-change">--</span></p>
+                <p><strong>Est. Cost Change:</strong> <span class="cost-change">--</span></p>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Insert after stats grid
+        const statsGrid = resultsPanel.querySelector('.stats-grid');
+        if (statsGrid) {
+          statsGrid.after(scalingSection);
+        } else {
+          // Fallback: insert at the beginning of the results panel
+          resultsPanel.prepend(scalingSection);
+        }
+        
+        // Log that we're about to initialize scaling controls
+        console.log('Adding scaling UI to row:', rowId);
+        
+        // Initialize scaling controls
+        if (PrinterCalc.ScalingManager && typeof PrinterCalc.ScalingManager.initScalingControls === 'function') {
+          PrinterCalc.ScalingManager.initScalingControls(rowId);
+        } else {
+          console.error('ScalingManager not available or missing initScalingControls function');
+        }
+      } catch (error) {
+        console.error('Error adding scaling UI:', error);
+      }
+    },
+    
     /**
      * Update results for an STL row
      * @param {string} rowId - Row ID
