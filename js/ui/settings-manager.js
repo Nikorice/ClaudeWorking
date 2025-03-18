@@ -1,9 +1,3 @@
-/**
- * settings-manager.js - Settings Management
- * 
- * Handles application settings and preferences.
- */
-
 (function () {
   // Ensure namespace exists and is accessible
   if (typeof window.PrinterCalc === 'undefined') {
@@ -23,6 +17,10 @@
       },
       CURRENCY_SYMBOLS: {
         USD: '$', EUR: '€', JPY: '¥', SGD: 'S$'
+      },
+      SPACING: {
+        OBJECT_SPACING: 15,    // Default XY spacing (horizontal)
+        VERTICAL_SPACING: 10   // Default Z spacing (vertical)
       }
     };
   }
@@ -33,7 +31,8 @@
     settings: {
       currency: 'USD',
       wallMargin: 10,
-      objectSpacing: 15
+      objectSpacing: 15,      // XY spacing (horizontal)
+      verticalSpacing: 10     // Z spacing (vertical)
     },
 
     /**
@@ -46,7 +45,57 @@
       // Set up event listeners for settings UI
       this.setupEventListeners();
       
+      // Check if we need to add the vertical spacing input
+      this.checkAndAddVerticalSpacingInput();
+      
       console.log("SettingsManager initialized with settings:", this.settings);
+    },
+    
+    /**
+     * Check if vertical spacing input exists, add if not
+     */
+    checkAndAddVerticalSpacingInput: function() {
+      // Check if vertical spacing input exists
+      if (document.getElementById('verticalSpacing')) {
+        return; // Already exists
+      }
+      
+      // Get object spacing input to find the right place to add the new input
+      const objectSpacingInput = document.getElementById('objectSpacing');
+      if (!objectSpacingInput) {
+        return; // Can't find the reference element
+      }
+      
+      // Get the parent form group
+      const formGroup = objectSpacingInput.closest('.form-group');
+      if (!formGroup) {
+        return;
+      }
+      
+      // Create the new form group for vertical spacing
+      const newFormGroup = document.createElement('div');
+      newFormGroup.className = 'form-group';
+      newFormGroup.innerHTML = `
+        <label for="verticalSpacing">Vertical Spacing (mm)</label>
+        <input type="number" id="verticalSpacing" value="${this.settings.verticalSpacing}" min="0" max="50">
+      `;
+      
+      // Insert the new form group after the object spacing one
+      formGroup.parentNode.insertBefore(newFormGroup, formGroup.nextSibling);
+      
+      // Add event listener for the new input
+      const verticalSpacingInput = document.getElementById('verticalSpacing');
+      if (verticalSpacingInput) {
+        verticalSpacingInput.addEventListener('input', () => {
+          // Just validate the input - the value will be applied when the user clicks "Apply Settings"
+          const value = parseFloat(verticalSpacingInput.value);
+          if (isNaN(value) || value < 0 || value > 50) {
+            verticalSpacingInput.classList.add('invalid');
+          } else {
+            verticalSpacingInput.classList.remove('invalid');
+          }
+        });
+      }
     },
     
     /**
@@ -61,6 +110,11 @@
           
           // Merge saved settings with defaults
           this.settings = { ...this.settings, ...parsedSettings };
+        }
+        
+        // Ensure vertical spacing is initialized
+        if (this.settings.verticalSpacing === undefined) {
+          this.settings.verticalSpacing = 10; // Default value
         }
       } catch (error) {
         console.error('Error loading settings:', error);
@@ -120,10 +174,16 @@
         wallMarginInput.value = this.settings.wallMargin || 10;
       }
       
-      // Update spacing input
+      // Update horizontal spacing input
       const objectSpacingInput = document.getElementById('objectSpacing');
       if (objectSpacingInput) {
         objectSpacingInput.value = this.settings.objectSpacing || 15;
+      }
+      
+      // Update vertical spacing input
+      const verticalSpacingInput = document.getElementById('verticalSpacing');
+      if (verticalSpacingInput) {
+        verticalSpacingInput.value = this.settings.verticalSpacing || 10;
       }
       
       // Update pricing inputs
@@ -241,6 +301,7 @@
       // Get values from inputs
       const wallMarginInput = document.getElementById('wallMargin');
       const objectSpacingInput = document.getElementById('objectSpacing');
+      const verticalSpacingInput = document.getElementById('verticalSpacing');
       
       if (wallMarginInput) {
         this.setSetting('wallMargin', parseFloat(wallMarginInput.value) || 10);
@@ -248,6 +309,10 @@
       
       if (objectSpacingInput) {
         this.setSetting('objectSpacing', parseFloat(objectSpacingInput.value) || 15);
+      }
+      
+      if (verticalSpacingInput) {
+        this.setSetting('verticalSpacing', parseFloat(verticalSpacingInput.value) || 10);
       }
       
       // Update printer constants
@@ -262,6 +327,7 @@
         // Update spacing constants
         if (PrinterCalc.CONSTANTS.SPACING) {
           PrinterCalc.CONSTANTS.SPACING.OBJECT_SPACING = this.settings.objectSpacing || 15;
+          PrinterCalc.CONSTANTS.SPACING.VERTICAL_SPACING = this.settings.verticalSpacing || 10;
         }
       }
       
