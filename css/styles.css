@@ -1690,3 +1690,300 @@ input.scale-factor {
     opacity: 0.2;
   }
 }
+
+/* Desktop Layout Optimizations */
+.desktop-layout {
+  max-width: 100%;
+  padding: var(--space-4) var(--space-6);
+}
+
+.main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.header-left {
+  flex: 1;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.content-wrapper {
+  display: flex;
+  gap: var(--space-5);
+  position: relative;
+  min-height: calc(100vh - 150px);
+}
+
+/* Collapsible Settings Sidebar */
+.settings-sidebar {
+  width: 320px;
+  background: var(--light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--gray-200);
+  position: fixed;
+  right: -350px;
+  top: 80px;
+  bottom: 20px;
+  transition: right 0.3s ease;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+[data-theme="dark"] .settings-sidebar {
+  background: var(--gray-800);
+  border-color: var(--gray-700);
+}
+
+.settings-sidebar.visible {
+  right: 20px;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+[data-theme="dark"] .sidebar-header {
+  border-color: var(--gray-700);
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.close-sidebar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-600);
+}
+
+.close-sidebar:hover {
+  color: var(--gray-800);
+}
+
+[data-theme="dark"] .close-sidebar:hover {
+  color: var(--gray-300);
+}
+
+.sidebar-content {
+  padding: var(--space-4);
+}
+
+.settings-toggle, .help-button {
+  background-color: transparent;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--gray-700);
+  transition: var(--transition);
+}
+
+.settings-toggle:hover, .help-button:hover {
+  background-color: var(--gray-100);
+}
+
+[data-theme="dark"] .settings-toggle, 
+[data-theme="dark"] .help-button {
+  background-color: var(--gray-700);
+  color: var(--gray-300);
+  border-color: var(--gray-600);
+}
+
+[data-theme="dark"] .settings-toggle:hover,
+[data-theme="dark"] .help-button:hover {
+  background-color: var(--gray-600);
+}
+
+/* Enhanced Tab Navigation */
+.tab-nav {
+  background-color: var(--gray-100);
+  border-radius: var(--radius-lg);
+  padding: var(--space-1);
+  margin-bottom: var(--space-5);
+  display: inline-flex;
+  border: 1px solid var(--gray-200);
+}
+
+[data-theme="dark"] .tab-nav {
+  background-color: var(--gray-800);
+  border-color: var(--gray-700);
+}
+
+.tab-btn {
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  margin: 2px;
+}
+
+.tab-btn.active {
+  background-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Two-column layout for desktop STL view */
+.stl-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+/* Full-width model viewer for desktop */
+.model-viewer {
+  height: 450px;
+}
+
+/* Enhanced action buttons */
+.viewer-toolbar {
+  background-color: var(--gray-50);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-3);
+  border: 1px solid var(--gray-200);
+}
+
+[data-theme="dark"] .viewer-toolbar {
+  background-color: var(--gray-700);
+  border-color: var(--gray-600);
+}
+
+.toolbar-group {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-700);
+}
+
+.toolbar-btn:hover {
+  background-color: var(--gray-200);
+}
+
+[data-theme="dark"] .toolbar-btn {
+  color: var(--gray-300);
+}
+
+[data-theme="dark"] .toolbar-btn:hover {
+  background-color: var(--gray-600);
+}
+
+/* Improved Stats Layout */
+.enhanced-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Enhanced printer capacity cards */
+.enhanced-printer-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+.printer-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.printer-highlight {
+  position: relative;
+  z-index: 1;
+}
+
+.printer-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  background-color: var(--primary);
+  opacity: 0.7;
+}
+
+/* Keyboard shortcuts tooltip */
+.shortcut-tip {
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--gray-800);
+  color: white;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s, bottom 0.2s;
+  pointer-events: none;
+}
+
+*:hover > .shortcut-tip {
+  opacity: 0.9;
+  bottom: -20px;
+}
+
+/* Responsive adjustments for desktop */
+@media (min-width: 1200px) {
+  .stl-content-grid {
+    grid-template-columns: 1fr 420px;
+  }
+  
+  .model-viewer {
+    height: 550px;
+  }
+  
+  .enhanced-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Tab content animation */
+.tab-content {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.tab-content.active {
+  opacity: 1;
+  transform: translateY(0);
+}

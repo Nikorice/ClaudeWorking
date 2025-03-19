@@ -27,6 +27,197 @@ document.addEventListener('DOMContentLoaded', function () {
       alert('Initialization Error: There was an error initializing the application. Please reload the page.');
     }
   }
+  // Initialize desktop-specific features
+// Initialize desktop-specific features
+initDesktopFeatures();
+
+function initDesktopFeatures() {
+  console.log('Setting up desktop features');
+  
+  // Check if window width is desktop sized (over 1024px)
+  const isDesktop = window.innerWidth > 1024;
+  if (!isDesktop) return;
+  
+  // Add desktop layout class to container
+  const container = document.querySelector('.container');
+  if (container && !container.classList.contains('desktop-layout')) {
+    container.classList.add('desktop-layout');
+  }
+  
+  // Restructure header for desktop layout
+  const header = document.querySelector('header');
+  if (header && !header.querySelector('.header-left')) {
+    // Save original content
+    const headerContent = header.innerHTML;
+    
+    // Create new header structure
+    const headerLeft = document.createElement('div');
+    headerLeft.className = 'header-left';
+    
+    const headerRight = document.createElement('div');
+    headerRight.className = 'header-right';
+    
+    // Move theme toggle to header right
+    const themeToggle = header.querySelector('.theme-toggle');
+    if (themeToggle) {
+      headerRight.appendChild(themeToggle);
+    }
+    
+    // Add settings toggle
+    const settingsToggle = document.createElement('button');
+    settingsToggle.id = 'settingsToggle';
+    settingsToggle.className = 'settings-toggle';
+    settingsToggle.innerHTML = '<span class="material-icon">settings</span>';
+    settingsToggle.title = 'Toggle settings (S)';
+    headerRight.appendChild(settingsToggle);
+    
+    // Add help button
+    const helpButton = document.createElement('button');
+    helpButton.id = 'helpButton';
+    helpButton.className = 'help-button';
+    helpButton.innerHTML = '<span class="material-icon">help_outline</span>';
+    helpButton.title = 'Show keyboard shortcuts';
+    headerRight.appendChild(helpButton);
+    
+    // Clear header and add new structure
+    header.innerHTML = '';
+    header.classList.add('main-header');
+    header.appendChild(headerLeft);
+    header.appendChild(headerRight);
+    
+    // Move h1 and subheading to header left
+    const titleContent = headerContent.match(/<h1[^>]*>[\s\S]*?<\/h1>[\s\S]*?<p[^>]*>[\s\S]*?<\/p>/);
+    if (titleContent) {
+      headerLeft.innerHTML = titleContent[0];
+    }
+  }
+  
+  // Create settings sidebar if it doesn't exist
+  if (!document.getElementById('settingsSidebar')) {
+    // Get settings card content
+    const settingsCard = document.querySelector('.settings-card');
+    if (settingsCard) {
+      const settingsContent = settingsCard.innerHTML;
+      
+      // Create sidebar
+      const sidebar = document.createElement('div');
+      sidebar.id = 'settingsSidebar';
+      sidebar.className = 'settings-sidebar';
+      
+      // Add header
+      const sidebarHeader = document.createElement('div');
+      sidebarHeader.className = 'sidebar-header';
+      sidebarHeader.innerHTML = `
+        <h3><span class="material-icon">settings</span> Settings</h3>
+        <button id="closeSidebar" class="close-sidebar">
+          <span class="material-icon">close</span>
+        </button>
+      `;
+      
+      // Add content
+      const sidebarContent = document.createElement('div');
+      sidebarContent.className = 'sidebar-content';
+      sidebarContent.innerHTML = settingsContent;
+      
+      // Assemble sidebar
+      sidebar.appendChild(sidebarHeader);
+      sidebar.appendChild(sidebarContent);
+      
+      // Add to body
+      document.body.appendChild(sidebar);
+      
+      // Hide original settings card for desktop
+      settingsCard.style.display = 'none';
+    }
+  }
+  
+  // Setup settings sidebar toggle
+  const settingsToggle = document.getElementById('settingsToggle');
+  const settingsSidebar = document.getElementById('settingsSidebar');
+  const closeSidebar = document.getElementById('closeSidebar');
+  
+  if (settingsToggle && settingsSidebar) {
+    settingsToggle.addEventListener('click', () => {
+      settingsSidebar.classList.toggle('visible');
+    });
+    
+    if (closeSidebar) {
+      closeSidebar.addEventListener('click', () => {
+        settingsSidebar.classList.remove('visible');
+      });
+    }
+    
+    // Close sidebar when clicking outside
+    document.addEventListener('click', (e) => {
+      if (settingsSidebar.classList.contains('visible') && 
+          !settingsSidebar.contains(e.target) && 
+          e.target !== settingsToggle &&
+          !settingsToggle.contains(e.target)) {
+        settingsSidebar.classList.remove('visible');
+      }
+    });
+    
+    // Keyboard shortcut (S) to toggle settings
+    document.addEventListener('keydown', (e) => {
+      // Only trigger if not in input fields
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        return;
+      }
+      
+      if (e.key.toLowerCase() === 's') {
+        settingsToggle.click();
+        e.preventDefault();
+      }
+    });
+  }
+  
+  // Setup help button modal
+  const helpButton = document.getElementById('helpButton');
+  if (helpButton) {
+    helpButton.addEventListener('click', () => {
+      // Show help information
+      const helpContent = `
+        <div style="text-align: left;">
+          <h3>Keyboard Shortcuts</h3>
+          <ul style="padding-left: 20px; margin-top: 10px;">
+            <li><strong>S</strong> - Toggle Settings Panel</li>
+            <li><strong>R</strong> - Set Flat Orientation</li>
+            <li><strong>V</strong> - Set Vertical Orientation</li>
+            <li><strong>W</strong> - Toggle Wireframe Mode</li>
+            <li><strong>Space</strong> - Reset Camera View</li>
+            <li><strong>Ctrl+1, Ctrl+2</strong> - Switch Tabs</li>
+          </ul>
+        </div>
+      `;
+      
+      if (PrinterCalc.Notification && typeof PrinterCalc.Notification.info === 'function') {
+        PrinterCalc.Notification.info(
+          'Help & Keyboard Shortcuts',
+          helpContent,
+          10000 // Show for 10 seconds
+        );
+      } else {
+        alert('Keyboard Shortcuts:\nS - Toggle Settings Panel\nR - Flat Orientation\nV - Vertical Orientation\nW - Toggle Wireframe\nSpace - Reset Camera');
+      }
+    });
+  }
+  
+  // Apply enhanced grid to existing STL rows
+  document.querySelectorAll('.stl-row').forEach(row => {
+    if (!row.classList.contains('stl-content-grid')) {
+      row.classList.add('stl-content-grid');
+      
+      // Add desktop classes to columns
+      const vizCol = row.querySelector('.stl-viz-col');
+      if (vizCol) vizCol.classList.add('desktop-viz-col');
+      
+      const infoCol = row.querySelector('.stl-info-col');
+      if (infoCol) infoCol.classList.add('desktop-info-col');
+    }
+  });
+  
+  console.log('Desktop features initialized');
+}
 });
 
 /**

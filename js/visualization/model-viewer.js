@@ -12,7 +12,147 @@
   PrinterCalc.ModelViewer = {
     // Store viewers by container ID
     viewers: {},
+    /**
+     * Add enhanced desktop controls to the model viewer
+     * @param {string} viewerId - Viewer ID
+     */
+    addDesktopControls: function (viewerId) {
+      const viewer = this.viewers[viewerId];
+      if (!viewer || !viewer.container) return;
 
+      // Create toolbar
+      const toolbar = document.createElement('div');
+      toolbar.className = 'viewer-toolbar';
+
+      // Left toolbar group
+      const leftGroup = document.createElement('div');
+      leftGroup.className = 'toolbar-group';
+
+      // Orientation buttons
+      const flatBtn = document.createElement('button');
+      flatBtn.className = 'toolbar-btn';
+      flatBtn.innerHTML = '<span class="material-icon">crop_landscape</span> Flat';
+      flatBtn.title = 'Flat orientation (R)';
+      flatBtn.addEventListener('click', () => {
+        this.changeOrientation(viewerId, 'flat');
+
+        // Update button states
+        flatBtn.classList.add('active');
+        verticalBtn.classList.remove('active');
+      });
+
+      const verticalBtn = document.createElement('button');
+      verticalBtn.className = 'toolbar-btn';
+      verticalBtn.innerHTML = '<span class="material-icon">crop_portrait</span> Vertical';
+      verticalBtn.title = 'Vertical orientation (V)';
+      verticalBtn.addEventListener('click', () => {
+        this.changeOrientation(viewerId, 'vertical');
+
+        // Update button states
+        flatBtn.classList.remove('active');
+        verticalBtn.classList.add('active');
+      });
+
+      // Set initial state based on current orientation
+      if (viewer.orientation === 'flat') {
+        flatBtn.classList.add('active');
+      } else {
+        verticalBtn.classList.add('active');
+      }
+
+      // Add to left group
+      leftGroup.appendChild(flatBtn);
+      leftGroup.appendChild(verticalBtn);
+
+      // Right toolbar group
+      const rightGroup = document.createElement('div');
+      rightGroup.className = 'toolbar-group';
+
+      // Wireframe toggle
+      const wireframeBtn = document.createElement('button');
+      wireframeBtn.className = 'toolbar-btn';
+      wireframeBtn.innerHTML = '<span class="material-icon">grid_3x3</span> Wireframe';
+      wireframeBtn.title = 'Toggle wireframe (W)';
+
+      let wireframeEnabled = false;
+      wireframeBtn.addEventListener('click', () => {
+        wireframeEnabled = !wireframeEnabled;
+        this.toggleWireframe(viewerId, wireframeEnabled);
+
+        // Update button state
+        if (wireframeEnabled) {
+          wireframeBtn.classList.add('active');
+        } else {
+          wireframeBtn.classList.remove('active');
+        }
+      });
+
+      // Reset view button
+      const resetViewBtn = document.createElement('button');
+      resetViewBtn.className = 'toolbar-btn';
+      resetViewBtn.innerHTML = '<span class="material-icon">restart_alt</span> Reset View';
+      resetViewBtn.title = 'Reset camera (Space)';
+      resetViewBtn.addEventListener('click', () => {
+        const context = viewer.threeContext;
+        if (!context) return;
+
+        // Reset camera to initial position
+        if (PrinterCalc.ThreeManager && typeof PrinterCalc.ThreeManager.fitCameraToObject === 'function') {
+          // Find model in scene
+          let modelMesh = null;
+          context.scene.traverse(object => {
+            if (object.userData && object.userData.isModel) {
+              modelMesh = object;
+            }
+          });
+
+          if (modelMesh) {
+            PrinterCalc.ThreeManager.fitCameraToObject(context, modelMesh);
+          }
+        }
+      });
+
+      // Add to right group
+      rightGroup.appendChild(wireframeBtn);
+      rightGroup.appendChild(resetViewBtn);
+
+      // Add groups to toolbar
+      toolbar.appendChild(leftGroup);
+      toolbar.appendChild(rightGroup);
+
+      // Insert toolbar after the container
+      viewer.container.parentNode.insertBefore(toolbar, viewer.container.nextSibling);
+
+      // Set up keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        // Only process if model is loaded and viewer is visible
+        if (!this.hasModel(viewerId) || !viewer.container.offsetParent) return;
+
+        // Only trigger if not in input fields
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+          return;
+        }
+
+        switch (e.key.toLowerCase()) {
+          case 'r':
+            flatBtn.click();
+            break;
+          case 'v':
+            verticalBtn.click();
+            break;
+          case 'w':
+            wireframeBtn.click();
+            break;
+          case ' ': // Space
+            resetViewBtn.click();
+            e.preventDefault(); // Prevent page scroll
+            break;
+        }
+      });
+
+      console.log('Desktop controls added to viewer:', viewerId);
+      return toolbar;
+    },
     /**
      * Initialize a model viewer
      * @param {HTMLElement} container - Container element
@@ -217,30 +357,30 @@
       mesh.userData.isModel = true;
     }
   };
-/**
-   * Scale a 3D model
-   * @param {string} viewerId - Viewer ID
-   * @param {number} factor - Scale factor
-   */
-PrinterCalc.ModelViewer.scaleModel = function(viewerId, factor) {
-  const viewer = this.viewers[viewerId];
-  if (!viewer || !viewer.threeContext) return;
-  
-  try {
-    const { scene } = viewer.threeContext;
-    
-    // Find model mesh
-    scene.traverse(object => {
-      if (object.isMesh && object.userData && object.userData.isModel) {
-        // Apply scaling
-        object.scale.set(factor, factor, factor);
-        
-        // Update model
-        object.updateMatrix();
-      }
-    });
-  } catch (error) {
-    console.error('Error scaling model:', error);
-  }
-};
+  /**
+     * Scale a 3D model
+     * @param {string} viewerId - Viewer ID
+     * @param {number} factor - Scale factor
+     */
+  PrinterCalc.ModelViewer.scaleModel = function (viewerId, factor) {
+    const viewer = this.viewers[viewerId];
+    if (!viewer || !viewer.threeContext) return;
+
+    try {
+      const { scene } = viewer.threeContext;
+
+      // Find model mesh
+      scene.traverse(object => {
+        if (object.isMesh && object.userData && object.userData.isModel) {
+          // Apply scaling
+          object.scale.set(factor, factor, factor);
+
+          // Update model
+          object.updateMatrix();
+        }
+      });
+    } catch (error) {
+      console.error('Error scaling model:', error);
+    }
+  };
 })();

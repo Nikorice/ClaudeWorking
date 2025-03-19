@@ -438,6 +438,29 @@ createSingleSTLInterface: function() {
         return;
       }
 
+      // Check if desktop layout is active (window width > 1024px)
+      const isDesktopLayout = window.innerWidth > 1024;
+      
+      // If in desktop layout, rearrange the row for better visualization
+      if (isDesktopLayout) {
+        // Add desktop grid layout class if not already present
+        if (!row.classList.contains('stl-content-grid')) {
+          row.classList.add('stl-content-grid');
+        }
+        
+        // Enhance the visualization column with additional classes
+        const vizCol = row.querySelector('.stl-viz-col');
+        if (vizCol && !vizCol.classList.contains('desktop-viz-col')) {
+          vizCol.classList.add('desktop-viz-col');
+        }
+        
+        // Enhance the info column with additional classes
+        const infoCol = row.querySelector('.stl-info-col');
+        if (infoCol && !infoCol.classList.contains('desktop-info-col')) {
+          infoCol.classList.add('desktop-info-col');
+        }
+      }
+
       try {
         // Check file validity
         if (!file) {
@@ -476,7 +499,6 @@ createSingleSTLInterface: function() {
         const errorMessage = row.querySelector('.error-message');
         const orientationToggle = row.querySelector('.orientation-toggle');
         const packingVisualizers = row.querySelector('.packing-visualizers');
-
         // Update UI to show loading state
         if (uploadArea) uploadArea.style.display = 'none';
         if (modelViewer) modelViewer.style.display = 'block';
@@ -1280,6 +1302,39 @@ createSingleSTLInterface: function() {
         console.error(`Error updating results for row ${rowId}:`, error);
         this.showErrorInRow(rowId, 'Error updating results. Please try again.');
       }
+
+      // Add enhanced desktop controls if in desktop layout
+      if (window.innerWidth > 1024 && rowData.viewerId && 
+        PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.addDesktopControls === 'function' &&
+        !row.querySelector('.viewer-toolbar')) {
+      setTimeout(() => {
+        PrinterCalc.ModelViewer.addDesktopControls(rowData.viewerId);
+      }, 200); // Small delay to ensure model is loaded
+    }
+
+    // Desktop optimization: Add keyboard shortcut tips
+    if (window.innerWidth > 1024) {
+      const statsBoxes = row.querySelectorAll('.stat-box');
+      if (statsBoxes.length > 0) {
+        // Add keyboard shortcut tip to dimensions box
+        const dimensionsBox = Array.from(statsBoxes).find(box => {
+          const label = box.querySelector('.stat-label');
+          return label && label.textContent.includes('Dimensions');
+        });
+        
+        if (dimensionsBox) {
+          const valueEl = dimensionsBox.querySelector('.stat-value');
+          if (valueEl && !valueEl.querySelector('.shortcut-tip')) {
+            // Add scaling shortcut tip
+            const tip = document.createElement('span');
+            tip.className = 'shortcut-tip';
+            tip.textContent = 'Click to scale (S)';
+            valueEl.style.position = 'relative';
+            valueEl.appendChild(tip);
+          }
+        }
+      }
+    }
     },
 
     /**
