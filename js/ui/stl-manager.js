@@ -32,19 +32,19 @@
     /**
      * Initialize STL manager
      */
-    init: function() {
+    init: function () {
       // Create initial STL upload area
       this.createSingleSTLInterface();
-      
+
       // Show memory warning if appropriate
       this.showMemoryWarningIfNeeded();
-      
+
       // Add lock proportions checkbox to manual tab
       const manualTab = document.getElementById('manual-tab');
       if (manualTab) {
         const formGroups = manualTab.querySelectorAll('.form-group');
         const lastFormGroup = formGroups[formGroups.length - 1];
-        
+
         if (lastFormGroup && !document.getElementById('manual-lock-proportions')) {
           const toggleContainer = document.createElement('div');
           toggleContainer.className = 'toggle-container';
@@ -56,14 +56,14 @@
             </label>
             <span class="toggle-label">Lock Proportions</span>
           `;
-          
+
           lastFormGroup.after(toggleContainer);
         }
       }
-      
+
       // Initialize manual scaling
-      if (PrinterCalc.ScalingManager && 
-          typeof PrinterCalc.ScalingManager.initManualScaling === 'function') {
+      if (PrinterCalc.ScalingManager &&
+        typeof PrinterCalc.ScalingManager.initManualScaling === 'function') {
         PrinterCalc.ScalingManager.initManualScaling();
       }
       setTimeout(() => {
@@ -76,29 +76,29 @@
     /**
  * Create a single STL interface
  */
-createSingleSTLInterface: function() {
-  // Get the container
-  const container = document.getElementById('stlRows');
-  if (!container) {
-    console.error('STL rows container not found');
-    return;
-  }
-  
-  // Clear any existing content
-  container.innerHTML = '';
-  
-  // Generate a unique ID for the STL interface
-  const rowId = (PrinterCalc.Utils && typeof PrinterCalc.Utils.generateId === 'function')
-    ? PrinterCalc.Utils.generateId()
-    : ('stl-' + Math.random().toString(36).substring(2, 15));
-  
-  // Create the single STL interface
-  const rowElement = document.createElement('div');
-  rowElement.id = rowId;
-  rowElement.className = 'stl-row card';
-  
-  // Add main content
-  rowElement.innerHTML = `
+    createSingleSTLInterface: function () {
+      // Get the container
+      const container = document.getElementById('stlRows');
+      if (!container) {
+        console.error('STL rows container not found');
+        return;
+      }
+
+      // Clear any existing content
+      container.innerHTML = '';
+
+      // Generate a unique ID for the STL interface
+      const rowId = (PrinterCalc.Utils && typeof PrinterCalc.Utils.generateId === 'function')
+        ? PrinterCalc.Utils.generateId()
+        : ('stl-' + Math.random().toString(36).substring(2, 15));
+
+      // Create the single STL interface
+      const rowElement = document.createElement('div');
+      rowElement.id = rowId;
+      rowElement.className = 'stl-row card';
+
+      // Add main content
+      rowElement.innerHTML = `
     <div class="stl-row-inner">
       <div class="stl-col stl-viz-col">
         <div class="model-viewer">
@@ -202,41 +202,41 @@ createSingleSTLInterface: function() {
       </div>
     </div>
   `;
-  
-  // Add to container
-  container.appendChild(rowElement);
-  
-  // Initialize event handlers
-  this.initRowHandlers(rowId);
-  
-  // Store row data
-  this.rows[rowId] = {
-    element: rowElement,
-    stlData: null,
-    viewerId: null,
-    orientation: 'flat',
-    applyGlaze: true,
-    currency: 'USD' // Default to USD if SettingsManager is not available
-  };
-  
-  // Try to get currency from settings if available
-  if (PrinterCalc.SettingsManager && typeof PrinterCalc.SettingsManager.getSetting === 'function') {
-    this.rows[rowId].currency = PrinterCalc.SettingsManager.getSetting('currency') || 'USD';
-  }
-  
-  // Hide elements initially
-  const modelViewer = rowElement.querySelector('.model-viewer');
-  const orientationToggle = rowElement.querySelector('.orientation-toggle');
-  const packingVisualizers = rowElement.querySelector('.packing-visualizers');
-  const resultsPanel = rowElement.querySelector('.results-panel');
-  
-  if (modelViewer) modelViewer.style.display = 'none';
-  if (orientationToggle) orientationToggle.style.display = 'none';
-  if (packingVisualizers) packingVisualizers.style.display = 'none';
-  if (resultsPanel) resultsPanel.style.display = 'none';
-  
-  return rowId;
-},
+
+      // Add to container
+      container.appendChild(rowElement);
+
+      // Initialize event handlers
+      this.initRowHandlers(rowId);
+
+      // Store row data
+      this.rows[rowId] = {
+        element: rowElement,
+        stlData: null,
+        viewerId: null,
+        orientation: 'flat',
+        applyGlaze: true,
+        currency: 'USD' // Default to USD if SettingsManager is not available
+      };
+
+      // Try to get currency from settings if available
+      if (PrinterCalc.SettingsManager && typeof PrinterCalc.SettingsManager.getSetting === 'function') {
+        this.rows[rowId].currency = PrinterCalc.SettingsManager.getSetting('currency') || 'USD';
+      }
+
+      // Hide elements initially
+      const modelViewer = rowElement.querySelector('.model-viewer');
+      const orientationToggle = rowElement.querySelector('.orientation-toggle');
+      const packingVisualizers = rowElement.querySelector('.packing-visualizers');
+      const resultsPanel = rowElement.querySelector('.results-panel');
+
+      if (modelViewer) modelViewer.style.display = 'none';
+      if (orientationToggle) orientationToggle.style.display = 'none';
+      if (packingVisualizers) packingVisualizers.style.display = 'none';
+      if (resultsPanel) resultsPanel.style.display = 'none';
+
+      return rowId;
+    },
 
     /**
      * Create a new STL row
@@ -429,7 +429,7 @@ createSingleSTLInterface: function() {
     /**
      * Modified handleFileUpload function to properly show visualization elements
      */
-    handleFileUpload: async function(rowId, file) {
+    handleFileUpload: async function (rowId, file) {
       console.log('Handling file upload for row:', rowId);
 
       const row = document.getElementById(rowId);
@@ -440,20 +440,20 @@ createSingleSTLInterface: function() {
 
       // Check if desktop layout is active (window width > 1024px)
       const isDesktopLayout = window.innerWidth > 1024;
-      
+
       // If in desktop layout, rearrange the row for better visualization
       if (isDesktopLayout) {
         // Add desktop grid layout class if not already present
         if (!row.classList.contains('stl-content-grid')) {
           row.classList.add('stl-content-grid');
         }
-        
+
         // Enhance the visualization column with additional classes
         const vizCol = row.querySelector('.stl-viz-col');
         if (vizCol && !vizCol.classList.contains('desktop-viz-col')) {
           vizCol.classList.add('desktop-viz-col');
         }
-        
+
         // Enhance the info column with additional classes
         const infoCol = row.querySelector('.stl-info-col');
         if (infoCol && !infoCol.classList.contains('desktop-info-col')) {
@@ -687,7 +687,7 @@ createSingleSTLInterface: function() {
             `Model loaded successfully (${stlData.triangleCount.toLocaleString()} triangles)`
           );
         }
-        
+
         // Add scaling UI if not already present
         if (!row.querySelector('.scaling-section')) {
           this.addScalingUI(rowId);
@@ -878,28 +878,28 @@ createSingleSTLInterface: function() {
      * Add scaling UI to STL row
      * @param {string} rowId - Row ID
      */
-    addScalingUI: function(rowId) {
+    addScalingUI: function (rowId) {
       try {
         const row = document.getElementById(rowId);
         if (!row) return;
-        
+
         // Only add if not already present
         if (row.querySelector('.scaling-section')) return;
-        
+
         // Check if this is a valid STL row, not a print time calculator section
         if (!this.rows[rowId] || !this.rows[rowId].stlData) {
           console.log('Not adding scaling UI to non-STL row:', rowId);
           return;
         }
-        
+
         // Find the results panel
         const resultsPanel = row.querySelector('.results-panel');
         if (!resultsPanel) return;
-        
+
         // Create scaling section
         const scalingSection = document.createElement('div');
         scalingSection.className = 'scaling-section';
-        
+
         // Add HTML content for scaling UI
         scalingSection.innerHTML = `
           <button class="btn btn-primary btn-sm toggle-scaling">
@@ -997,7 +997,7 @@ createSingleSTLInterface: function() {
             </div>
           </div>
         `;
-        
+
         // Insert after stats grid
         const statsGrid = resultsPanel.querySelector('.stats-grid');
         if (statsGrid) {
@@ -1006,10 +1006,10 @@ createSingleSTLInterface: function() {
           // Fallback: insert at the beginning of the results panel
           resultsPanel.prepend(scalingSection);
         }
-        
+
         // Log that we're about to initialize scaling controls
         console.log('Adding scaling UI to row:', rowId);
-        
+
         // Initialize scaling controls
         if (PrinterCalc.ScalingManager && typeof PrinterCalc.ScalingManager.initScalingControls === 'function') {
           PrinterCalc.ScalingManager.initScalingControls(rowId);
@@ -1020,7 +1020,7 @@ createSingleSTLInterface: function() {
         console.error('Error adding scaling UI:', error);
       }
     },
-    
+
     /**
      * Update results for an STL row
      * @param {string} rowId - Row ID
@@ -1125,17 +1125,23 @@ createSingleSTLInterface: function() {
         }
 
         // Calculate material costs with enhanced error handling
+        // Calculate material costs with enhanced error handling
         let materialResult;
         try {
           if (!PrinterCalc.MaterialCalculator || typeof PrinterCalc.MaterialCalculator.calculate !== 'function') {
             throw new Error('MaterialCalculator not available or not initialized');
           }
-          
+
           materialResult = PrinterCalc.MaterialCalculator.calculate(
             volumeCm3,
             applyGlaze,
             currency
           );
+
+          // Validate calculation results
+          if (!materialResult || !materialResult.costs || typeof materialResult.costs.total !== 'number' || isNaN(materialResult.costs.total)) {
+            throw new Error('Invalid calculation results returned');
+          }
 
           console.log('Material calculation successful:', materialResult);
           this.rows[rowId].materialResult = materialResult;
@@ -1304,37 +1310,37 @@ createSingleSTLInterface: function() {
       }
 
       // Add enhanced desktop controls if in desktop layout
-      if (window.innerWidth > 1024 && rowData.viewerId && 
+      if (window.innerWidth > 1024 && rowData.viewerId &&
         PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.addDesktopControls === 'function' &&
         !row.querySelector('.viewer-toolbar')) {
-      setTimeout(() => {
-        PrinterCalc.ModelViewer.addDesktopControls(rowData.viewerId);
-      }, 200); // Small delay to ensure model is loaded
-    }
+        setTimeout(() => {
+          PrinterCalc.ModelViewer.addDesktopControls(rowData.viewerId);
+        }, 200); // Small delay to ensure model is loaded
+      }
 
-    // Desktop optimization: Add keyboard shortcut tips
-    if (window.innerWidth > 1024) {
-      const statsBoxes = row.querySelectorAll('.stat-box');
-      if (statsBoxes.length > 0) {
-        // Add keyboard shortcut tip to dimensions box
-        const dimensionsBox = Array.from(statsBoxes).find(box => {
-          const label = box.querySelector('.stat-label');
-          return label && label.textContent.includes('Dimensions');
-        });
-        
-        if (dimensionsBox) {
-          const valueEl = dimensionsBox.querySelector('.stat-value');
-          if (valueEl && !valueEl.querySelector('.shortcut-tip')) {
-            // Add scaling shortcut tip
-            const tip = document.createElement('span');
-            tip.className = 'shortcut-tip';
-            tip.textContent = 'Click to scale (S)';
-            valueEl.style.position = 'relative';
-            valueEl.appendChild(tip);
+      // Desktop optimization: Add keyboard shortcut tips
+      if (window.innerWidth > 1024) {
+        const statsBoxes = row.querySelectorAll('.stat-box');
+        if (statsBoxes.length > 0) {
+          // Add keyboard shortcut tip to dimensions box
+          const dimensionsBox = Array.from(statsBoxes).find(box => {
+            const label = box.querySelector('.stat-label');
+            return label && label.textContent.includes('Dimensions');
+          });
+
+          if (dimensionsBox) {
+            const valueEl = dimensionsBox.querySelector('.stat-value');
+            if (valueEl && !valueEl.querySelector('.shortcut-tip')) {
+              // Add scaling shortcut tip
+              const tip = document.createElement('span');
+              tip.className = 'shortcut-tip';
+              tip.textContent = 'Click to scale (S)';
+              valueEl.style.position = 'relative';
+              valueEl.appendChild(tip);
+            }
           }
         }
       }
-    }
     },
 
     /**
@@ -1433,7 +1439,10 @@ createSingleSTLInterface: function() {
           }
         }
 
-        const objectCount = Number(capacity.totalObjects);
+        // Fix potential NaN issues
+        const objectCount = Number(capacity.totalObjects) || 0;
+        // Ensure singleObjectCost is a valid number
+        singleObjectCost = isNaN(singleObjectCost) ? 0 : singleObjectCost;
         const batchCost = objectCount * singleObjectCost;
 
         console.log('STL Manager batch calculation:', objectCount, '*', singleObjectCost, '=', batchCost);
@@ -1469,33 +1478,33 @@ createSingleSTLInterface: function() {
     },
 
     /**
-     * Update packing visualization
-     * @param {string} rowId - Row ID
-     * @param {HTMLElement} container - Visualization container
-     * @param {Object} capacity - Capacity data
-     * @param {Object} printer - Printer specifications
-     */
+  * Update packing visualization
+  * @param {string} rowId - Row ID
+  * @param {HTMLElement} container - Visualization container
+  * @param {Object} capacity - Capacity data
+  * @param {Object} printer - Printer specifications
+  */
     updatePackingVisualization: function (rowId, container, capacity, printer) {
       if (!container) {
         console.error(`Missing container for row ${rowId}`);
         return;
       }
-      
+
+      // Add safety checks for capacity and printer
+      if (!capacity || !printer) {
+        console.error(`Missing capacity or printer data for row ${rowId}`);
+        return;
+      }
+
       try {
         // Clean up previous visualization if exists
         if (container.visualizerCleanup && typeof container.visualizerCleanup === 'function') {
           container.visualizerCleanup();
         }
-        
+
         // Clear container
         container.innerHTML = '';
-        
-        // Add safety checks for capacity and printer
-        if (!capacity || !printer) {
-          console.error(`Missing capacity or printer data for row ${rowId}`);
-          return;
-        }
-        
+
         // Check if capacity data is valid
         if (!capacity.fitsInPrinter) {
           const errorMsg = document.createElement('div');
@@ -1506,10 +1515,10 @@ createSingleSTLInterface: function() {
           container.appendChild(errorMsg);
           return;
         }
-        
+
         // Check if we have the STL data for this row
         let stlGeometry = null;
-        
+
         if (this.rows[rowId] && this.rows[rowId].stlData && this.rows[rowId].viewerId) {
           // Try to get the geometry from the ModelViewer
           try {
@@ -1518,7 +1527,7 @@ createSingleSTLInterface: function() {
             } else {
               // Fallback: Find the mesh in the viewer's scene
               const viewer = PrinterCalc.ModelViewer.viewers[this.rows[rowId].viewerId];
-              
+
               if (viewer && viewer.threeContext && viewer.threeContext.scene) {
                 // Find the model mesh in the scene
                 viewer.threeContext.scene.traverse(object => {
@@ -1533,12 +1542,12 @@ createSingleSTLInterface: function() {
             console.warn('Error getting STL geometry from viewer:', error);
           }
         }
-        
+
         // Explicitly show the container
         if (container.style.display === 'none') {
           container.style.display = 'block';
         }
-        
+
         // Use 3D visualization with STL geometry if available
         if (PrinterCalc.PrinterCapacity && typeof PrinterCalc.PrinterCapacity.visualize3D === 'function') {
           PrinterCalc.PrinterCapacity.visualize3D(container, capacity, printer, stlGeometry);
@@ -1548,7 +1557,7 @@ createSingleSTLInterface: function() {
           canvas.width = container.clientWidth || 280;
           canvas.height = container.clientHeight || 200;
           container.appendChild(canvas);
-          
+
           // Use the 2D visualization method
           if (PrinterCalc.PrinterCapacity && typeof PrinterCalc.PrinterCapacity.visualize === 'function') {
             PrinterCalc.PrinterCapacity.visualize(canvas, capacity, printer);
@@ -1556,7 +1565,7 @@ createSingleSTLInterface: function() {
         }
       } catch (error) {
         console.error(`Error updating packing visualization for row ${rowId}:`, error);
-        
+
         // Try to display a simple error message
         try {
           const errorMsg = document.createElement('div');
@@ -1564,7 +1573,7 @@ createSingleSTLInterface: function() {
           errorMsg.style.textAlign = 'center';
           errorMsg.style.padding = '50px 0';
           errorMsg.style.color = '#94a3b8';
-          
+
           // Clear container first
           container.innerHTML = '';
           container.appendChild(errorMsg);
@@ -1722,82 +1731,82 @@ createSingleSTLInterface: function() {
  * Reset the STL interface to start a new calculation
  * @param {string} rowId - Row ID
  */
-resetSTLInterface: function(rowId) {
-  try {
-    // Get row element
-    const row = document.getElementById(rowId);
-    if (!row) return;
-    
-    // Clean up viewer if it exists
-    if (this.rows[rowId] && this.rows[rowId].viewerId) {
-      if (PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.dispose === 'function') {
-        PrinterCalc.ModelViewer.dispose(this.rows[rowId].viewerId);
+    resetSTLInterface: function (rowId) {
+      try {
+        // Get row element
+        const row = document.getElementById(rowId);
+        if (!row) return;
+
+        // Clean up viewer if it exists
+        if (this.rows[rowId] && this.rows[rowId].viewerId) {
+          if (PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.dispose === 'function') {
+            PrinterCalc.ModelViewer.dispose(this.rows[rowId].viewerId);
+          }
+          this.rows[rowId].viewerId = null;
+        }
+
+        // Reset row data
+        this.rows[rowId].stlData = null;
+        this.rows[rowId].orientation = 'flat';
+
+        // Get elements to reset
+        const uploadArea = row.querySelector('.upload-area');
+        const fileInput = row.querySelector('input[type="file"]');
+        const modelViewer = row.querySelector('.model-viewer');
+        const orientationToggle = row.querySelector('.orientation-toggle');
+        const packingVisualizers = row.querySelector('.packing-visualizers');
+        const resultsPanel = row.querySelector('.results-panel');
+        const errorMessage = row.querySelector('.error-message');
+
+        // Reset file input
+        if (fileInput) {
+          fileInput.value = "";
+        }
+
+        // Reset UI states
+        if (uploadArea) uploadArea.style.display = 'block';
+        if (modelViewer) modelViewer.style.display = 'none';
+        if (orientationToggle) orientationToggle.style.display = 'none';
+        if (packingVisualizers) packingVisualizers.style.display = 'none';
+        if (resultsPanel) resultsPanel.style.display = 'none';
+        if (errorMessage) errorMessage.style.display = 'none';
+
+        // Reset orientation buttons
+        const orientationBtns = row.querySelectorAll('.orientation-btn');
+        orientationBtns.forEach(btn => {
+          if (btn.getAttribute('data-orientation') === 'flat') {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+
+        // Clear the model viewer
+        if (modelViewer) {
+          // Remove any existing 3D content
+          const modelViewerLoading = modelViewer.querySelector('.model-viewer-loading');
+          if (modelViewerLoading) {
+            modelViewerLoading.style.display = 'none';
+          }
+        }
+
+        // Clear the packing visualizers
+        const packing400El = row.querySelector(`#${rowId}-packing-400`);
+        const packing600El = row.querySelector(`#${rowId}-packing-600`);
+        if (packing400El) packing400El.innerHTML = '';
+        if (packing600El) packing600El.innerHTML = '';
+
+        // Show success notification
+        if (PrinterCalc.Notification) {
+          PrinterCalc.Notification.info(
+            'New Calculation',
+            'Ready for a new STL file.'
+          );
+        }
+      } catch (error) {
+        console.error('Error resetting STL interface:', error);
       }
-      this.rows[rowId].viewerId = null;
-    }
-    
-    // Reset row data
-    this.rows[rowId].stlData = null;
-    this.rows[rowId].orientation = 'flat';
-    
-    // Get elements to reset
-    const uploadArea = row.querySelector('.upload-area');
-    const fileInput = row.querySelector('input[type="file"]');
-    const modelViewer = row.querySelector('.model-viewer');
-    const orientationToggle = row.querySelector('.orientation-toggle');
-    const packingVisualizers = row.querySelector('.packing-visualizers');
-    const resultsPanel = row.querySelector('.results-panel');
-    const errorMessage = row.querySelector('.error-message');
-    
-    // Reset file input
-    if (fileInput) {
-      fileInput.value = "";
-    }
-    
-    // Reset UI states
-    if (uploadArea) uploadArea.style.display = 'block';
-    if (modelViewer) modelViewer.style.display = 'none';
-    if (orientationToggle) orientationToggle.style.display = 'none';
-    if (packingVisualizers) packingVisualizers.style.display = 'none';
-    if (resultsPanel) resultsPanel.style.display = 'none';
-    if (errorMessage) errorMessage.style.display = 'none';
-    
-    // Reset orientation buttons
-    const orientationBtns = row.querySelectorAll('.orientation-btn');
-    orientationBtns.forEach(btn => {
-      if (btn.getAttribute('data-orientation') === 'flat') {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
-    
-    // Clear the model viewer
-    if (modelViewer) {
-      // Remove any existing 3D content
-      const modelViewerLoading = modelViewer.querySelector('.model-viewer-loading');
-      if (modelViewerLoading) {
-        modelViewerLoading.style.display = 'none';
-      }
-    }
-    
-    // Clear the packing visualizers
-    const packing400El = row.querySelector(`#${rowId}-packing-400`);
-    const packing600El = row.querySelector(`#${rowId}-packing-600`);
-    if (packing400El) packing400El.innerHTML = '';
-    if (packing600El) packing600El.innerHTML = '';
-    
-    // Show success notification
-    if (PrinterCalc.Notification) {
-      PrinterCalc.Notification.info(
-        'New Calculation',
-        'Ready for a new STL file.'
-      );
-    }
-  } catch (error) {
-    console.error('Error resetting STL interface:', error);
-  }
-},
+    },
 
     /**
      * Update all rows when settings change

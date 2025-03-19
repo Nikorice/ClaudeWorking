@@ -19,13 +19,13 @@
      */
     calculate: function (volumeCm3, applyGlaze = true, currency = 'USD') {
       console.log("MaterialCalculator.calculate called");
-      
+
       // Ensure we have constants before proceeding
       if (!window.PrinterCalc || !PrinterCalc.CONSTANTS || !PrinterCalc.CONSTANTS.MATERIALS) {
         console.error("Missing CONSTANTS.MATERIALS in MaterialCalculator.calculate");
         throw new Error('Material constants not available');
       }
-      
+
       // Validate inputs with fallback if Utils isn't available
       if ((PrinterCalc.Utils && typeof PrinterCalc.Utils.isPositiveNumber === 'function' &&
         !PrinterCalc.Utils.isPositiveNumber(volumeCm3)) ||
@@ -39,10 +39,10 @@
       // Get pricing data for selected currency
       const pricing = PrinterCalc.CONSTANTS.PRICING[currency] || PrinterCalc.CONSTANTS.PRICING.USD;
 
-      // Calculate material quantities
-      const powder = volumeCm3 * POWDER_DENSITY; // kg
-      const binder = volumeCm3 * BINDER_RATIO; // ml
-      const silica = volumeCm3 * SILICA_DENSITY; // g
+      // Calculate material quantities with better precision
+      const powder = parseFloat((volumeCm3 * POWDER_DENSITY).toFixed(6)); // kg
+      const binder = parseFloat((volumeCm3 * BINDER_RATIO).toFixed(6)); // ml
+      const silica = parseFloat((volumeCm3 * SILICA_DENSITY).toFixed(6)); // g
 
       // Calculate glaze amount (if enabled) - with fallback if Utils is not available
       let glaze = 0;
@@ -140,7 +140,7 @@
           const printerWidth = dimensions.width - (2 * wallMargin);
           const printerDepth = dimensions.depth - (2 * wallMargin);
           const printerHeight = dimensions.height;
-          
+
           return width <= printerWidth && depth <= printerDepth && height <= printerHeight;
         }
       };
@@ -151,10 +151,10 @@
         } else {
           // Simplified fallback implementation
           const layerHeight = 0.1; // Default layer height
-          let printHeight = orient === 'vertical' ? 
-            Math.max(dims.width, dims.depth, dims.height) : 
+          let printHeight = orient === 'vertical' ?
+            Math.max(dims.width, dims.depth, dims.height) :
             Math.min(dims.width, dims.depth, dims.height);
-          
+
           return Math.ceil(printHeight / layerHeight) * printer.layerTime;
         }
       };

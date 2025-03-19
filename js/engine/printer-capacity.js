@@ -51,17 +51,27 @@
         const verticalSpacing = (PrinterCalc.CONSTANTS && PrinterCalc.CONSTANTS.SPACING && 
                                PrinterCalc.CONSTANTS.SPACING.VERTICAL_SPACING) || objectSpacing;
 
-        // Determine object dimensions based on orientation
-        let objectWidth, objectDepth, objectHeight;
+       // Apply scale factor to dimensions if provided and not 1
+let scaledDimensions = dimensions;
+if (scaleFactor && scaleFactor !== 1) {
+  scaledDimensions = {
+    width: dimensions.width * scaleFactor,
+    depth: dimensions.depth * scaleFactor,
+    height: dimensions.height * scaleFactor
+  };
+}
 
-        if (orientation === 'vertical') {
-          // For vertical orientation, sort dimensions and use
-          // smallest for width, middle for depth, largest for height
-          const dims = [dimensions.width, dimensions.depth, dimensions.height].sort((a, b) => a - b);
-          objectWidth = dims[0];
-          objectDepth = dims[1];
-          objectHeight = dims[2];
-        } else {
+// Determine object dimensions based on orientation
+let objectWidth, objectDepth, objectHeight;
+
+if (orientation === 'vertical') {
+  // For vertical orientation, sort dimensions and use
+  // smallest for width, middle for depth, largest for height
+  const dims = [scaledDimensions.width, scaledDimensions.depth, scaledDimensions.height].sort((a, b) => a - b);
+  objectWidth = dims[0];
+  objectDepth = dims[1];
+  objectHeight = dims[2];
+} else {
           // For flat orientation, sort dimensions and use
           // largest for width, middle for depth, smallest for height
           const dims = [dimensions.width, dimensions.depth, dimensions.height].sort((a, b) => a - b);

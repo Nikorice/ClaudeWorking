@@ -195,15 +195,27 @@
           const originalVolume = rowData.stlData.volumeCm3;
           const originalDimensions = rowData.stlData.dimensions;
           
-          // Calculate volume ratio based on dimensions
-          const volumeRatio = (
-            newDimensions.width * newDimensions.depth * newDimensions.height
-          ) / (
-            originalDimensions.width * originalDimensions.depth * originalDimensions.height
-          );
-          
-          // Calculate new volume
-          const newVolume = originalVolume * volumeRatio;
+          // Check for zero dimensions to avoid division by zero
+if (originalDimensions.width <= 0 || originalDimensions.depth <= 0 || originalDimensions.height <= 0) {
+    console.error('Original dimensions contain zero or negative values', originalDimensions);
+    return;
+  }
+  
+  // Calculate volume ratio based on dimensions
+  const volumeRatio = (
+    newDimensions.width * newDimensions.depth * newDimensions.height
+  ) / (
+    originalDimensions.width * originalDimensions.depth * originalDimensions.height
+  );
+  
+  // Safety check for invalid ratio
+  if (!isFinite(volumeRatio) || isNaN(volumeRatio)) {
+    console.error('Invalid volume ratio calculated', volumeRatio);
+    return;
+  }
+  
+  // Calculate new volume
+  const newVolume = originalVolume * volumeRatio;
           
           // Update preview elements
           const preview = row.querySelector('.scaling-preview');
