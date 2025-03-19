@@ -33,20 +33,9 @@
      * Initialize STL manager
      */
     init: function() {
-      // Add new STL button handler
-      const addButton = document.getElementById('addNewStl');
-      if (addButton) {
-        addButton.addEventListener('click', () => {
-          this.createSTLRow();
-        });
-      }
-
-      // Create initial row if no rows exist
-      const stlRows = document.getElementById('stlRows');
-      if (stlRows && stlRows.childElementCount === 0) {
-        this.createSTLRow();
-      }
-
+      // Create initial STL upload area
+      this.createSingleSTLInterface();
+      
       // Show memory warning if appropriate
       this.showMemoryWarningIfNeeded();
       
@@ -83,6 +72,171 @@
         }
       }, 200);
     },
+
+    /**
+ * Create a single STL interface
+ */
+createSingleSTLInterface: function() {
+  // Get the container
+  const container = document.getElementById('stlRows');
+  if (!container) {
+    console.error('STL rows container not found');
+    return;
+  }
+  
+  // Clear any existing content
+  container.innerHTML = '';
+  
+  // Generate a unique ID for the STL interface
+  const rowId = (PrinterCalc.Utils && typeof PrinterCalc.Utils.generateId === 'function')
+    ? PrinterCalc.Utils.generateId()
+    : ('stl-' + Math.random().toString(36).substring(2, 15));
+  
+  // Create the single STL interface
+  const rowElement = document.createElement('div');
+  rowElement.id = rowId;
+  rowElement.className = 'stl-row card';
+  
+  // Add main content
+  rowElement.innerHTML = `
+    <div class="stl-row-inner">
+      <div class="stl-col stl-viz-col">
+        <div class="model-viewer">
+          <div class="model-viewer-loading">
+            <div class="spinner"></div>
+            <div>Loading model...</div>
+            <div class="model-viewer-loading-progress">
+              <div class="model-viewer-loading-bar" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="orientation-toggle">
+          <button type="button" class="orientation-btn active" data-orientation="flat">
+            <span class="material-icon">crop_landscape</span> Flat
+          </button>
+          <button type="button" class="orientation-btn" data-orientation="vertical">
+            <span class="material-icon">crop_portrait</span> Vertical
+          </button>
+        </div>
+
+        <div class="packing-visualizers">
+          <div class="packing-visualizer" id="${rowId}-packing-400"></div>
+          <div class="packing-visualizer" id="${rowId}-packing-600"></div>
+        </div>
+      </div>
+
+      <div class="stl-col stl-info-col">
+        <div class="upload-area">
+          <div class="upload-icon">
+            <span class="material-icon">cloud_upload</span>
+          </div>
+          <p><strong>Click or drag to upload STL</strong></p>
+          <p>Supports binary STL files</p>
+          <p class="upload-limits">Maximum file size: 100MB</p>
+        </div>
+        <input type="file" accept=".stl" style="display: none;">
+
+        <div class="results-panel">
+          <h3>
+            <span class="material-icon">analytics</span>
+            Cost Analysis
+          </h3>
+          <div class="error-message"></div>
+          <div class="loading-message">
+            <div class="spinner"></div>
+            Processing STL file...
+          </div>
+          <div class="total-cost">--</div>
+
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-value">--</div>
+              <div class="stat-label">Volume (cm³)</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">--</div>
+              <div class="stat-label">Dimensions (mm)</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">--</div>
+              <div class="stat-label">Print Time (400/600)</div>
+            </div>
+          </div>
+
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" class="glaze-toggle" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">Apply Glaze</span>
+          </div>
+
+          <div class="progress-container"></div>
+
+          <h3>
+            <span class="material-icon">view_in_ar</span>
+            Printer Capacity
+          </h3>
+          <div class="printer-cards">
+            <div class="printer-card">
+              <div class="printer-title">Printer 400</div>
+              <div class="printer-stats" id="${rowId}-printer-400-stats">
+                <p>Calculating...</p>
+              </div>
+            </div>
+            <div class="printer-card">
+              <div class="printer-title">Printer 600</div>
+              <div class="printer-stats" id="${rowId}-printer-600-stats">
+                <p>Calculating...</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <button class="btn btn-primary new-calculation-btn">
+              <span class="material-icon">refresh</span> New Calculation
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Add to container
+  container.appendChild(rowElement);
+  
+  // Initialize event handlers
+  this.initRowHandlers(rowId);
+  
+  // Store row data
+  this.rows[rowId] = {
+    element: rowElement,
+    stlData: null,
+    viewerId: null,
+    orientation: 'flat',
+    applyGlaze: true,
+    currency: 'USD' // Default to USD if SettingsManager is not available
+  };
+  
+  // Try to get currency from settings if available
+  if (PrinterCalc.SettingsManager && typeof PrinterCalc.SettingsManager.getSetting === 'function') {
+    this.rows[rowId].currency = PrinterCalc.SettingsManager.getSetting('currency') || 'USD';
+  }
+  
+  // Hide elements initially
+  const modelViewer = rowElement.querySelector('.model-viewer');
+  const orientationToggle = rowElement.querySelector('.orientation-toggle');
+  const packingVisualizers = rowElement.querySelector('.packing-visualizers');
+  const resultsPanel = rowElement.querySelector('.results-panel');
+  
+  if (modelViewer) modelViewer.style.display = 'none';
+  if (orientationToggle) orientationToggle.style.display = 'none';
+  if (packingVisualizers) packingVisualizers.style.display = 'none';
+  if (resultsPanel) resultsPanel.style.display = 'none';
+  
+  return rowId;
+},
 
     /**
      * Create a new STL row
@@ -246,10 +400,19 @@
           });
         }
 
-        // Remove button handler
-        if (removeBtn) {
-          removeBtn.addEventListener('click', () => {
-            this.removeSTLRow(rowId);
+        // New calculation button handler
+        const newCalculationBtn = row.querySelector('.new-calculation-btn');
+        if (newCalculationBtn) {
+          newCalculationBtn.addEventListener('click', () => {
+            // Confirm with user before starting new calculation
+            if (PrinterCalc.Notification) {
+              const confirmNewCalc = confirm('Start a new calculation? This will clear the current STL model.');
+              if (confirmNewCalc) {
+                this.resetSTLInterface(rowId);
+              }
+            } else {
+              this.resetSTLInterface(rowId);
+            }
           });
         }
       } catch (error) {
@@ -1500,6 +1663,86 @@
         console.error(`Error removing row ${rowId}:`, error);
       }
     },
+    /**
+ * Reset the STL interface to start a new calculation
+ * @param {string} rowId - Row ID
+ */
+resetSTLInterface: function(rowId) {
+  try {
+    // Get row element
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    
+    // Clean up viewer if it exists
+    if (this.rows[rowId] && this.rows[rowId].viewerId) {
+      if (PrinterCalc.ModelViewer && typeof PrinterCalc.ModelViewer.dispose === 'function') {
+        PrinterCalc.ModelViewer.dispose(this.rows[rowId].viewerId);
+      }
+      this.rows[rowId].viewerId = null;
+    }
+    
+    // Reset row data
+    this.rows[rowId].stlData = null;
+    this.rows[rowId].orientation = 'flat';
+    
+    // Get elements to reset
+    const uploadArea = row.querySelector('.upload-area');
+    const fileInput = row.querySelector('input[type="file"]');
+    const modelViewer = row.querySelector('.model-viewer');
+    const orientationToggle = row.querySelector('.orientation-toggle');
+    const packingVisualizers = row.querySelector('.packing-visualizers');
+    const resultsPanel = row.querySelector('.results-panel');
+    const errorMessage = row.querySelector('.error-message');
+    
+    // Reset file input
+    if (fileInput) {
+      fileInput.value = "";
+    }
+    
+    // Reset UI states
+    if (uploadArea) uploadArea.style.display = 'block';
+    if (modelViewer) modelViewer.style.display = 'none';
+    if (orientationToggle) orientationToggle.style.display = 'none';
+    if (packingVisualizers) packingVisualizers.style.display = 'none';
+    if (resultsPanel) resultsPanel.style.display = 'none';
+    if (errorMessage) errorMessage.style.display = 'none';
+    
+    // Reset orientation buttons
+    const orientationBtns = row.querySelectorAll('.orientation-btn');
+    orientationBtns.forEach(btn => {
+      if (btn.getAttribute('data-orientation') === 'flat') {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    
+    // Clear the model viewer
+    if (modelViewer) {
+      // Remove any existing 3D content
+      const modelViewerLoading = modelViewer.querySelector('.model-viewer-loading');
+      if (modelViewerLoading) {
+        modelViewerLoading.style.display = 'none';
+      }
+    }
+    
+    // Clear the packing visualizers
+    const packing400El = row.querySelector(`#${rowId}-packing-400`);
+    const packing600El = row.querySelector(`#${rowId}-packing-600`);
+    if (packing400El) packing400El.innerHTML = '';
+    if (packing600El) packing600El.innerHTML = '';
+    
+    // Show success notification
+    if (PrinterCalc.Notification) {
+      PrinterCalc.Notification.info(
+        'New Calculation',
+        'Ready for a new STL file.'
+      );
+    }
+  } catch (error) {
+    console.error('Error resetting STL interface:', error);
+  }
+},
 
     /**
      * Update all rows when settings change
